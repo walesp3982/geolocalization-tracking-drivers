@@ -1,14 +1,27 @@
 {
-    "folders": [
-        {
-            "path": "application"
-        },
-        {
-            "path": "backend"
-        },
-        {
-            "name": "root",
-            "path": "."
+  "folders": [
+    {
+      "path": "application",
+    },
+    {
+      "path": "backend",
+    },
+    {
+      "name": "root",
+      "path": ".",
+    },
+  ],
+  "settings": {
+    "[python]": {
+      "editor.defaultFormatter": "charliermarsh.ruff",
+      "editor.formatOnSave": true,
+      "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit",
+            "source.fixAll": "explicit"
         }
-    ]
+    },
+
+    "ruff.lint.enable": true,
+    "ruff.organizeImports": true
+  },
 }
