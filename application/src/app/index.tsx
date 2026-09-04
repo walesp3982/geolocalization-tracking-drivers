@@ -1,36 +1,36 @@
-import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
-import * as Device from "expo-device";
-import { Platform, StyleSheet } from "react-native";
-import MapView from "react-native-maps";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { iniciarRastreoUbicacion } from "@/services/locationService";
+import { Button, StyleSheet } from "react-native";
+import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
 
-function getDevMenuHint() {
-  if (Platform.OS === "web") {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === "android" ? "cmd+m (or ctrl+m)" : "cmd+d";
+function AllowButtonLocation() {
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
+    <Button
+      onPress={iniciarRastreoUbicacion}
+      title="Habilitar ubicaciónn"
+    ></Button>
   );
 }
 
 export default function HomeScreen() {
   return (
     <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <MapView style={styles.map}></MapView>
-      </SafeAreaView>
+      {/* <SafeAreaView style={styles.safeArea}> */}
+      <AllowButtonLocation />
+      <MapView
+        provider={PROVIDER_GOOGLE}
+        style={{
+          flex: 1,
+        }}
+        initialRegion={{
+          latitude: -17.7833,
+          longitude: -63.1821,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        }}
+      />
+      {/* </SafeAreaView> */}
     </ThemedView>
   );
 }
@@ -38,7 +38,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   map: {
     width: "100%",
-    height: 300,
+    height: "100%",
   },
   container: {
     flex: 1,
