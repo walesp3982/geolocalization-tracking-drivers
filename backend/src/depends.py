@@ -1,19 +1,12 @@
-from collections.abc import Generator
+from collections.abc import AsyncGenerator, Generator
 from functools import lru_cache
 from typing import Annotated
 
 from fastapi import Depends
-from redis import Redis
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from src.setting import DatabaseConfig, RedisConfig
-
-
-@lru_cache
-def _get_db_config() -> DatabaseConfig:
-
-    return DatabaseConfig()  # type: ignore
+from src.setting import DATABASE_URL, RedisConfig
 
 
 @lru_cache
@@ -21,27 +14,26 @@ def _get_redis_config() -> RedisConfig:
     return RedisConfig()  # type: ignore
 
 
-_db = _get_db_config()  # type: ignore
-_engine = create_engine(
-    f"postgresql+psycopg://{_db.USER}:{_db.PASSWORD}@{_db.HOST}:{_db.PORT}/{_db.NAME}",
+_engine = create_async_engine(
+    DATABASE_URL,
     pool_pre_ping=True,
 )
-_SessionMaker = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
+_SessionMaker = async_sessionmaker(autocommit=False, autoflush=False, bind=_engine)
 
 
-def _get_db() -> Generator[Session, None, None]:
+async def _get_db() -> AsyncGenerator[AsyncSession, None]:
     session = _SessionMaker()
     try:
         yield session
-        session.commit()
+        await session.commit()
     except Exception:
-        session.rollback()
+        await session.rollback()
         raise
     finally:
-        session.close()
+        await session.close()
 
 
-DatabaseSession = Annotated[Session, Depends(_get_db)]
+DatabaseSession = Annotated[AsyncSession, Depends(_get_db)]
 
 
 @lru_cache
