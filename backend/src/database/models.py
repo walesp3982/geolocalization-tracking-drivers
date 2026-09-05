@@ -83,7 +83,7 @@ class PuntosControl(Base):
     )
     radio: Mapped[Decimal] = mapped_column(Numeric(10, 7), nullable=False)
     ubicacion: Mapped[Any] = mapped_column(
-        Geometry(geometry_type="POINT", srid=4326), nullable=False
+        Geometry(geometry_type="POINT", srid=4326, spatial_index=True), nullable=False
     )
     n_puntos_relativo: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
@@ -133,8 +133,13 @@ class Recorrido(Base):
     id_recorrido: Mapped[int] = mapped_column(
         Integer, ForeignKey("asignacion_ruta.id_asignacion"), nullable=False
     )
+    line: Mapped[Geometry] = mapped_column(
+        Geometry(geometry_type="LINESTRING", srid=4326, spatial_index=True),
+        nullable=False,
+    )
+
     ubicacion: Mapped[Any] = mapped_column(
-        Geometry(geometry_type="POINT", srid=4326), nullable=False
+        Geometry(geometry_type="POINT", srid=4326, spatial_index=True), nullable=False
     )
     # Diagrama dice TIME; recomiendo DateTime para no perder la fecha del punto.
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
