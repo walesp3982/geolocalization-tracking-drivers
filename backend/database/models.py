@@ -16,10 +16,10 @@ from sqlalchemy import (
     select,
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from backend.database import Base  # ajustá el import a tu estructura real
+from .database import Base  # ajustá el import a tu estructura real
 
 
 class GrupoOperativo(Base):
@@ -28,14 +28,18 @@ class GrupoOperativo(Base):
     id_grupo: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     nombre_grupo: Mapped[str] = mapped_column(String(20), nullable=False)
 
-    conductores: Mapped[list["Conductor"]] = relationship(back_populates="grupo_operativo")
-    rutas: Mapped[list["Ruta"]] = relationship(back_populates="grupo_operativo")
+    conductores: Mapped[list[Conductor]] = relationship(
+        back_populates="grupo_operativo"
+    )
+    rutas: Mapped[list[Ruta]] = relationship(back_populates="grupo_operativo")
 
 
 class Conductor(Base):
     __tablename__ = "conductor"
 
-    id_conductor: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id_conductor: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
     nombre: Mapped[str] = mapped_column(String(120), nullable=False)
     telefono: Mapped[str | None] = mapped_column(String(20), nullable=True)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -45,8 +49,10 @@ class Conductor(Base):
         Integer, ForeignKey("grupo_operativo.id_grupo"), nullable=False
     )
 
-    grupo_operativo: Mapped["GrupoOperativo"] = relationship(back_populates="conductores")
-    asignaciones: Mapped[list["AsignacionRuta"]] = relationship(back_populates="conductor")
+    grupo_operativo: Mapped[GrupoOperativo] = relationship(back_populates="conductores")
+    asignaciones: Mapped[list[AsignacionRuta]] = relationship(
+        back_populates="conductor"
+    )
 
 
 class Ruta(Base):
@@ -59,13 +65,15 @@ class Ruta(Base):
     numero_ruta: Mapped[str] = mapped_column(String(10), nullable=False)
     lugar_inicial: Mapped[str] = mapped_column(String(100), nullable=False)
     lugar_final: Mapped[str] = mapped_column(String(100), nullable=False)
-    tiempo_estimado: Mapped[int | None] = mapped_column(Integer, nullable=True)  # minutos
+    tiempo_estimado: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )  # minutos
 
     # "FK" tal como está en el diagrama: JSONB, sin constraint real de Postgres.
     # Guarda ids de PuntoControl, ej: {"ids": [1, 5, 9]} o [1, 5, 9]
     puntos_control: Mapped[list[int] | None] = mapped_column(JSONB, nullable=True)
 
-    async def get_puntos_control(self, session: AsyncSession) -> list["PuntoControl"]:
+    async def get_puntos_control(self, session: AsyncSession) -> list[PuntoControl]:
         if not self.puntos_control:
             return []
         stmt = select(PuntoControl).where(
@@ -92,8 +100,12 @@ class PuntoControl(Base):
 class AsignacionRuta(Base):
     __tablename__ = "asignacion_ruta"
 
-    id_asignacion: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    id_ruta: Mapped[int] = mapped_column(Integer, ForeignKey("ruta.id_ruta"), nullable=False)
+    id_asignacion: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
+    id_ruta: Mapped[int] = mapped_column(
+        Integer, ForeignKey("ruta.id_ruta"), nullable=False
+    )
     id_conductor: Mapped[int] = mapped_column(
         Integer, ForeignKey("conductor.id_conductor"), nullable=False
     )
@@ -104,9 +116,9 @@ class AsignacionRuta(Base):
         DateTime(timezone=True), nullable=True
     )
 
-    ruta: Mapped["Ruta"] = relationship(back_populates="asignaciones")
-    conductor: Mapped["Conductor"] = relationship(back_populates="asignaciones")
-    recorridos: Mapped[list["Recorrido"]] = relationship(back_populates="asignacion")
+    ruta: Mapped[Ruta] = relationship(back_populates="asignaciones")
+    conductor: Mapped[Conductor] = relationship(back_populates="asignaciones")
+    recorridos: Mapped[list[Recorrido]] = relationship(back_populates="asignacion")
 
     @property
     def duracion(self) -> timedelta | None:
@@ -131,4 +143,4 @@ class Recorrido(Base):
     # Diagrama dice TIME; recomiendo DateTime para no perder la fecha del punto.
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
-    asignacion: Mapped["AsignacionRuta"] = relationship(back_populates="recorridos")
+    asignacion: Mapped[AsignacionRuta] = relationship(back_populates="recorridos")
