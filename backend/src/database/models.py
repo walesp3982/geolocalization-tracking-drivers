@@ -13,10 +13,7 @@ from sqlalchemy import (
     Integer,
     Numeric,
     String,
-    select,
 )
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base  # ajustá el import a tu estructura real
@@ -27,6 +24,11 @@ class GrupoOperativo(Base):
 
     id_grupo: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     nombre_grupo: Mapped[str] = mapped_column(String(20), nullable=False)
+    id_representante: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    representante: Mapped[Conductor | None] = relationship(
+        "conductor", foreign_keys=[id_representante], uselist=False
+    )
 
     conductores: Mapped[list[Conductor]] = relationship(
         back_populates="grupo_operativo"
@@ -69,21 +71,10 @@ class Ruta(Base):
         Integer, nullable=True
     )  # minutos
 
-    # "FK" tal como está en el diagrama: JSONB, sin constraint real de Postgres.
-    # Guarda ids de PuntoControl, ej: {"ids": [1, 5, 9]} o [1, 5, 9]
-    puntos_control: Mapped[list[int] | None] = mapped_column(JSONB, nullable=True)
-
-    async def get_puntos_control(self, session: AsyncSession) -> list[PuntoControl]:
-        if not self.puntos_control:
-            return []
-        stmt = select(PuntoControl).where(
-            PuntoControl.id_punto_control.in_(self.puntos_control)
-        )
-        result = await session.execute(stmt)
-        return list(result.scalars().all())
+    puntos_control: Mapped[list[PuntosControl]] = relationship(back_populates="ruta")
 
 
-class PuntoControl(Base):
+class PuntosControl(Base):
     __tablename__ = "puntos_control"
 
     # PK agregada por necesidad técnica; el diagrama no la dibuja explícita.
@@ -95,6 +86,11 @@ class PuntoControl(Base):
         Geometry(geometry_type="POINT", srid=4326), nullable=False
     )
     n_puntos_relativo: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    id_ruta: Mapped[int] = mapped_column(
+        Integer, ForeignKey("ruta.id_ruta"), nullable=False
+    )
+    ruta: Mapped[Ruta] = relationship(back_populates="puntos_control")
 
 
 class AsignacionRuta(Base):
