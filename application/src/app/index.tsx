@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { ThemedView } from "@/components/themed-view";
+import LoginScreen from "@/components/login-screen";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { iniciarRastreoUbicacion } from "@/services/locationService";
 import { Button, StyleSheet } from "react-native";
@@ -14,9 +16,14 @@ function AllowButtonLocation() {
 }
 
 export default function HomeScreen() {
+  const [sesionIniciada, setSesionIniciada] = useState(false);
+
+  if (!sesionIniciada) {
+    return <LoginScreen onLoginExitoso={() => setSesionIniciada(true)} />;
+  }
+
   return (
     <ThemedView style={styles.container}>
-      {/* <SafeAreaView style={styles.safeArea}> */}
       <AllowButtonLocation />
       <MapView
         provider={PROVIDER_GOOGLE}
@@ -30,7 +37,6 @@ export default function HomeScreen() {
           longitudeDelta: 0.05,
         }}
       />
-      {/* </SafeAreaView> */}
     </ThemedView>
   );
 }
