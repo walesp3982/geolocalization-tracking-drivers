@@ -10,23 +10,16 @@ class Settings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
 
-    # --- Base de datos ---
-    database_url: str = (
+    DATABASE_URL: str = (
         "postgresql+asyncpg://root:@localhost:5432/"
         "geolocalization-tracking-drivers_db"
     )
-    db_echo: bool = False
-
-    # --- JWT ---
-    # IMPORTANTE: sobreescribir en .env / variables de entorno en producción.
-    jwt_secret_key: str = "Cabiar frase secreta por una aleatoria y segura en producción"
-    jwt_algorithm: str = "HS256"
-    jwt_expire_days: int = 7  # duración del token: 7 días
+    # IMPORTANTE: sobreescribir en producción vía variable de entorno JWT_SECRET_KEY.
+    JWT_SECRET_KEY: str = "CAMBIAR_ESTO_POR_UN_VALOR_SECRETO_Y_LARGO"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_DAYS: int = 7  # duración del token: 7 días
 
 
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-
-
-settings = get_settings()
