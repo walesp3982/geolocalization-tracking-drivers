@@ -1,12 +1,11 @@
+#Determinar el rol del conductor y generar el token de acceso
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+#Falta mergear la database 
+from  src.database.models import Conductor, GrupoOperativo
+from src.schemas.auth import RolConductor
 
-from  import Conductor
-from app.models.grupo_operativo import GrupoOperativo
-
-from app.schemas.auth import RolConductor
-
-from app.core.security import (
+from src.jwt.security import (
     verify_password,
     create_access_token,
 )
@@ -17,13 +16,6 @@ def autenticar_conductor(
     id_conductor: int,
     password: str,
 ):
-    """
-    Busca al conductor por su ID y verifica su contraseña.
-
-    También comprueba que el conductor esté activo.
-    Si alguna validación falla, devuelve None.
-    """
-
     # Busca un conductor cuyo ID coincida con el recibido
     # desde la pantalla de inicio de sesión.
     resultado = db.execute(
@@ -31,8 +23,6 @@ def autenticar_conductor(
             Conductor.id_conductor == id_conductor
         )
     )
-
-    # Obtiene el conductor encontrado o None si no existe.
     conductor = resultado.scalar_one_or_none()
 
     # Si el conductor no existe, la autenticación falla.
@@ -60,10 +50,6 @@ def obtener_grupo_conductor(
     db: Session,
     conductor: Conductor,
 ):
-    """
-    Obtiene el grupo operativo al que pertenece
-    el conductor autenticado.
-    """
 
     # Busca el grupo cuyo ID sea igual al id_grupo
     # registrado en el conductor.
@@ -81,15 +67,6 @@ def determinar_rol_conductor(
     conductor: Conductor,
     grupo: GrupoOperativo,
 ) -> RolConductor:
-    """
-    Determina si el conductor es jefe de grupo
-    o conductor común.
-
-    La comparación se realiza utilizando:
-        grupo.id_representante
-        conductor.id_conductor
-    """
-
     # Este es el punto donde se determina el jefe de grupo.
     #
     # Si el ID del conductor coincide con el ID del
@@ -107,12 +84,6 @@ def generar_token_conductor(
     conductor: Conductor,
     rol: RolConductor,
 ):
-    """
-    Genera el token JWT del conductor autenticado.
-
-    Se utiliza la función create_access_token que ya
-    tienes configurada en tu archivo security.py.
-    """
 
     # Estos datos se guardan dentro del token.
     # No se crean columnas nuevas en la base de datos.
