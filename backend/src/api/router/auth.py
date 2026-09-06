@@ -1,11 +1,12 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.deps import get_current_conductor, get_rol_actual
-from src.database.database import get_db  
 from src.database.models import Conductor
+from src.depends import DatabaseSession
 from src.schemas.auth import ConductorOut, LoginRequest, RolConductor, TokenResponse
-from src.services.auth_service import (
+from src.services.auth_services import (
     autenticar_conductor,
     determinar_rol_conductor,
     generar_token_conductor,
@@ -14,7 +15,8 @@ from src.services.auth_service import (
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
-#Vista para el login, recibe id_conductor, devuelve los datos del conductor
+
+# Vista para el login, recibe id_conductor, devuelve los datos del conductor
 def _conductor_out(conductor: Conductor, rol: RolConductor) -> ConductorOut:
     return ConductorOut(
         id_conductor=conductor.id_conductor,
@@ -25,11 +27,12 @@ def _conductor_out(conductor: Conductor, rol: RolConductor) -> ConductorOut:
         rol=rol,
     )
 
-#ingreso de datos para el login, recibe id_conductor y password, devuelve un token de acceso
+
+# ingreso de datos para el login, recibe id_conductor y password, devuelve un token de acceso
 @router.post("/login", response_model=TokenResponse)
 async def login(
     data: LoginRequest,
-    db: AsyncSession = Depends(get_db),
+    db: DatabaseSession,
 ) -> TokenResponse:
     """El frontend manda id_conductor + password."""
     conductor = await autenticar_conductor(db, data.id_conductor, data.password)
@@ -56,20 +59,22 @@ async def login(
         conductor=_conductor_out(conductor, rol),
     )
 
-#Mostrar datos del conductor autenticado y su rol 
+
+# Mostrar datos del conductor autenticado y su rol
 @router.get("/me", response_model=ConductorOut)
 async def me(
-    conductor: Conductor = Depends(get_current_conductor),
-    rol: RolConductor = Depends(get_rol_actual),
+    conductor: Annotated[Conductor, Depends(get_current_conductor)],
+    rol: Annotated[RolConductor, Depends(get_rol_actual)],
 ) -> ConductorOut:
     """Devuelve los datos del conductor autenticado y su rol actual."""
     return _conductor_out(conductor, rol)
 
-#Emite un tocken cada 7 dias
+
+# Emite un tocken cada 7 dias
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh(
-    conductor: Conductor = Depends(get_current_conductor),
-    rol: RolConductor = Depends(get_rol_actual),
+    conductor: Annotated[Conductor, Depends(get_current_conductor)],
+    rol: Annotated[RolConductor, Depends(get_rol_actual)],
 ) -> TokenResponse:
     token, expire = generar_token_conductor(conductor, rol)
     return TokenResponse(

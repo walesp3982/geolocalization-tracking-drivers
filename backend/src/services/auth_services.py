@@ -6,11 +6,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.models import Conductor, GrupoOperativo
-from src.schemas.auth import RolConductor
 from src.jwt.security import (
-    verify_password,
     create_access_token,
+    verify_password,
 )
+from src.schemas.auth import RolConductor
 
 
 async def autenticar_conductor(
@@ -46,9 +46,7 @@ async def obtener_grupo_conductor(
 ) -> GrupoOperativo | None:
     # Busca el grupo cuyo ID sea igual al id_grupo registrado en el conductor.
     resultado = await db.execute(
-        select(GrupoOperativo).where(
-            GrupoOperativo.id_grupo == conductor.id_grupo
-        )
+        select(GrupoOperativo).where(GrupoOperativo.id_grupo == conductor.id_grupo)
     )
     return resultado.scalar_one_or_none()
 
