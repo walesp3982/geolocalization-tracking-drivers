@@ -115,6 +115,7 @@ dependencies = [
     { name = "scalar-fastapi" },
     { name = "shapely" },
     { name = "sqlalchemy" },
+    { name = "websockets" },
 ]
 
 [package.metadata]
@@ -128,6 +129,7 @@ requires-dist = [
     { name = "scalar-fastapi", specifier = ">=1.9.0" },
     { name = "shapely", specifier = ">=2.1.2" },
     { name = "sqlalchemy", specifier = ">=2.0.52" },
+    { name = "websockets", specifier = ">=17.1" },
 ]
 
 [[package]]

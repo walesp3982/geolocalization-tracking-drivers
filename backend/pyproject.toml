@@ -14,5 +14,6 @@ dependencies = [
     "scalar-fastapi>=1.9.0",
     "shapely>=2.1.2",
     "sqlalchemy>=2.0.52",
+    "websockets>=17.1",
 ]
 
