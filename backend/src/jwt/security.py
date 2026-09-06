@@ -23,7 +23,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 # Generacion del tokend de acceso con limite de tiempo de 7 dias que esta en config
-def create_access_token(data: dict[str, Any]) -> tuple[str, datetime]:
+def create_access_token(data: dict[str, Any]) -> str:
     now = datetime.now(UTC)
     expire = now + timedelta(days=settings.JWT_EXPIRE_DAYS)
 
@@ -33,7 +33,7 @@ def create_access_token(data: dict[str, Any]) -> tuple[str, datetime]:
     token = jwt.encode(
         to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM
     )
-    return token, expire
+    return token
 
 
 # decodificacion y validacion del token
