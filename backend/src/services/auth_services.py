@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,18 +8,18 @@ from src.jwt.security import (
     create_access_token,
     verify_password,
 )
-from src.schemas.auth import RolConductor
+from src.schemas.auth import PayloadData
 
 
 async def autenticar_conductor(
     db: AsyncSession,
-    id_conductor: int,
+    code: str,
     password: str,
 ) -> Conductor | None:
     # Busca un conductor cuyo ID coincida con el recibido
     # desde la pantalla de inicio de sesión.
     resultado = await db.execute(
-        select(Conductor).where(Conductor.id_conductor == id_conductor)
+        select(Conductor).where(Conductor.id_conductor == code)
     )
     conductor = resultado.scalar_one_or_none()
 
@@ -51,27 +49,33 @@ async def obtener_grupo_conductor(
     return resultado.scalar_one_or_none()
 
 
-def determinar_rol_conductor(
+def is_jefe_conductor(
     conductor: Conductor,
     grupo: GrupoOperativo,
-) -> RolConductor:
+) -> bool:
     # Si el ID del conductor coincide con el ID del representante
     # registrado en su grupo, es el jefe del grupo.
-    if grupo.id_representante == conductor.id_conductor:
-        return RolConductor.JEFE_GRUPO
-    return RolConductor.CONDUCTOR
+    if grupo.id_representante:
+        return grupo.id_representante == conductor.id_conductor
+    return False
 
 
-def generar_token_conductor(
+async def generar_token_conductor(
+    db: AsyncSession,
     conductor: Conductor,
-    rol: RolConductor,
-) -> tuple[str, datetime]:
+) -> str:
     # Estos datos se guardan dentro del token; no crean columnas nuevas.
-    datos_token = {
-        "sub": str(conductor.id_conductor),
-        "id_conductor": conductor.id_conductor,
-        "id_grupo": conductor.id_grupo,
-        "rol": rol.value,
-    }
+    grupo = await obtener_grupo_conductor(db, conductor)
+    if not grupo:
+        raise ValueError("Cannot found group id")
+    is_jefe_grupo = is_jefe_conductor(conductor, grupo)
+
+    payload = PayloadData(
+        sub=conductor.id_conductor,
+        name=conductor.nombre,
+        id_group=conductor.id_grupo,
+        is_jefe_grupo=is_jefe_grupo,
+    )
+
     # create_access_token devuelve (token, fecha_expiracion).
-    return create_access_token(data=datos_token)
+    return create_access_token(data=payload.model_dump())

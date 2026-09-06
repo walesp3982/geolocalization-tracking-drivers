@@ -20,7 +20,6 @@ class NewConductor(BaseModel):
     nombre: str
     telefono: str
     password: str
-    id_grupo: int
 
 
 router = APIRouter(prefix="/conductor", tags=["conductor"])
