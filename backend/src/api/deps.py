@@ -76,3 +76,6 @@ def require_jefe_grupo():
         return conductor
 
     return _checker
+
+
+JefeGrupo = Annotated[Conductor, Depends(require_jefe_grupo)]
