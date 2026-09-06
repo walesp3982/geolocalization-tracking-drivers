@@ -1,8 +1,8 @@
-"""initial migration
+"""initial_schema
 
-Revision ID: 7ebee9711268
+Revision ID: d33ad35776c3
 Revises: 
-Create Date: 2026-09-05 19:32:43.818583
+Create Date: 2026-09-06 13:50:43.110201
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from geoalchemy2 import Geometry
 
 # revision identifiers, used by Alembic.
-revision: str = '7ebee9711268'
+revision: str = 'd33ad35776c3'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -25,37 +25,41 @@ def upgrade() -> None:
     sa.Column('id_grupo', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('nombre_grupo', sa.String(length=20), nullable=False),
     sa.Column('id_representante', sa.Integer(), nullable=True),
-    sa.PrimaryKeyConstraint('id_grupo')
+    sa.PrimaryKeyConstraint('id_grupo', name=op.f('pk_grupo_operativo'))
     )
     op.create_table('conductor',
     sa.Column('id_conductor', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('code', sa.String(length=10), nullable=False),
     sa.Column('nombre', sa.String(length=120), nullable=False),
     sa.Column('telefono', sa.String(length=20), nullable=True),
     sa.Column('password', sa.String(length=255), nullable=False),
     sa.Column('activo', sa.Boolean(), nullable=False),
     sa.Column('id_grupo', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['id_grupo'], ['grupo_operativo.id_grupo'], ),
-    sa.PrimaryKeyConstraint('id_conductor')
+    sa.ForeignKeyConstraint(['id_grupo'], ['grupo_operativo.id_grupo'], name=op.f('fk_conductor_id_grupo_grupo_operativo')),
+    sa.PrimaryKeyConstraint('id_conductor', name=op.f('pk_conductor')),
+    sa.UniqueConstraint('nombre', name=op.f('uq_conductor_nombre'))
     )
-    op.create_table('ruta',
+    op.create_geospatial_table('ruta', # pyright: ignore[reportAttributeAccessIssue]
     sa.Column('id_ruta', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('id_grupo_operativo', sa.Integer(), nullable=False),
     sa.Column('numero_ruta', sa.String(length=10), nullable=False),
     sa.Column('lugar_inicial', sa.String(length=100), nullable=False),
     sa.Column('lugar_final', sa.String(length=100), nullable=False),
     sa.Column('tiempo_estimado', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['id_grupo_operativo'], ['grupo_operativo.id_grupo'], ),
-    sa.PrimaryKeyConstraint('id_ruta')
+    sa.Column('line', Geometry(geometry_type='LINESTRING', srid=4326, dimension=2, spatial_index=False, from_text='ST_GeomFromEWKT', name='geometry', nullable=False), nullable=False),
+    sa.ForeignKeyConstraint(['id_grupo_operativo'], ['grupo_operativo.id_grupo'], name=op.f('fk_ruta_id_grupo_operativo_grupo_operativo')),
+    sa.PrimaryKeyConstraint('id_ruta', name=op.f('pk_ruta'))
     )
+    op.create_geospatial_index('idx_ruta_line', 'ruta', ['line'], unique=False, postgresql_using='gist', postgresql_ops={}) # pyright: ignore[reportAttributeAccessIssue]
     op.create_table('asignacion_ruta',
     sa.Column('id_asignacion', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('id_ruta', sa.Integer(), nullable=False),
     sa.Column('id_conductor', sa.Integer(), nullable=False),
     sa.Column('fecha_hora_inicio', sa.DateTime(timezone=True), nullable=False),
     sa.Column('fecha_hora_fin', sa.DateTime(timezone=True), nullable=True),
-    sa.ForeignKeyConstraint(['id_conductor'], ['conductor.id_conductor'], ),
-    sa.ForeignKeyConstraint(['id_ruta'], ['ruta.id_ruta'], ),
-    sa.PrimaryKeyConstraint('id_asignacion')
+    sa.ForeignKeyConstraint(['id_conductor'], ['conductor.id_conductor'], name=op.f('fk_asignacion_ruta_id_conductor_conductor')),
+    sa.ForeignKeyConstraint(['id_ruta'], ['ruta.id_ruta'], name=op.f('fk_asignacion_ruta_id_ruta_ruta')),
+    sa.PrimaryKeyConstraint('id_asignacion', name=op.f('pk_asignacion_ruta'))
     )
     op.create_geospatial_table('puntos_control', # pyright: ignore[reportAttributeAccessIssue]
     sa.Column('id_punto_control', sa.Integer(), autoincrement=True, nullable=False),
@@ -63,20 +67,18 @@ def upgrade() -> None:
     sa.Column('ubicacion', Geometry(geometry_type='POINT', srid=4326, dimension=2, spatial_index=False, from_text='ST_GeomFromEWKT', name='geometry', nullable=False), nullable=False),
     sa.Column('n_puntos_relativo', sa.Integer(), nullable=True),
     sa.Column('id_ruta', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['id_ruta'], ['ruta.id_ruta'], ),
-    sa.PrimaryKeyConstraint('id_punto_control')
+    sa.ForeignKeyConstraint(['id_ruta'], ['ruta.id_ruta'], name=op.f('fk_puntos_control_id_ruta_ruta')),
+    sa.PrimaryKeyConstraint('id_punto_control', name=op.f('pk_puntos_control'))
     )
     op.create_geospatial_index('idx_puntos_control_ubicacion', 'puntos_control', ['ubicacion'], unique=False, postgresql_using='gist', postgresql_ops={}) # pyright: ignore[reportAttributeAccessIssue]
     op.create_geospatial_table('recorrido', # pyright: ignore[reportAttributeAccessIssue]
     sa.Column('id_ubicacion', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('id_recorrido', sa.Integer(), nullable=False),
-    sa.Column('line', Geometry(geometry_type='LINESTRING', srid=4326, dimension=2, spatial_index=False, from_text='ST_GeomFromEWKT', name='geometry', nullable=False), nullable=False),
     sa.Column('ubicacion', Geometry(geometry_type='POINT', srid=4326, dimension=2, spatial_index=False, from_text='ST_GeomFromEWKT', name='geometry', nullable=False), nullable=False),
     sa.Column('timestamp', sa.DateTime(timezone=True), nullable=False),
-    sa.ForeignKeyConstraint(['id_recorrido'], ['asignacion_ruta.id_asignacion'], ),
-    sa.PrimaryKeyConstraint('id_ubicacion')
+    sa.ForeignKeyConstraint(['id_recorrido'], ['asignacion_ruta.id_asignacion'], name=op.f('fk_recorrido_id_recorrido_asignacion_ruta')),
+    sa.PrimaryKeyConstraint('id_ubicacion', name=op.f('pk_recorrido'))
     )
-    op.create_geospatial_index('idx_recorrido_line', 'recorrido', ['line'], unique=False, postgresql_using='gist', postgresql_ops={}) # pyright: ignore[reportAttributeAccessIssue]
     op.create_geospatial_index('idx_recorrido_ubicacion', 'recorrido', ['ubicacion'], unique=False, postgresql_using='gist', postgresql_ops={}) # pyright: ignore[reportAttributeAccessIssue]
     # ### end Alembic commands ###
 
@@ -85,12 +87,12 @@ def downgrade() -> None:
     """Downgrade schema."""
     # ### commands auto generated by Alembic - please adjust! ###
     op.drop_geospatial_index('idx_recorrido_ubicacion', table_name='recorrido', postgresql_using='gist', column_name='ubicacion') # pyright: ignore[reportAttributeAccessIssue]
-    op.drop_geospatial_index('idx_recorrido_line', table_name='recorrido', postgresql_using='gist', column_name='line') # pyright: ignore[reportAttributeAccessIssue]
     op.drop_geospatial_table('recorrido') # pyright: ignore[reportAttributeAccessIssue]
     op.drop_geospatial_index('idx_puntos_control_ubicacion', table_name='puntos_control', postgresql_using='gist', column_name='ubicacion') # pyright: ignore[reportAttributeAccessIssue]
-    op.drop_geospatial_table('puntos_control') # type: ignore
+    op.drop_geospatial_table('puntos_control') # pyright: ignore[reportAttributeAccessIssue]
     op.drop_table('asignacion_ruta')
-    op.drop_table('ruta')
+    op.drop_geospatial_index('idx_ruta_line', table_name='ruta', postgresql_using='gist', column_name='line') # pyright: ignore[reportAttributeAccessIssue]
+    op.drop_geospatial_table('ruta') # pyright: ignore[reportAttributeAccessIssue]
     op.drop_table('conductor')
     op.drop_table('grupo_operativo')
     # ### end Alembic commands ###
