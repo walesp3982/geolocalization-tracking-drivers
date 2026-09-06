@@ -42,7 +42,8 @@ class Conductor(Base):
     id_conductor: Mapped[int] = mapped_column(
         Integer, primary_key=True, autoincrement=True
     )
-    nombre: Mapped[str] = mapped_column(String(120), nullable=False)
+    code: Mapped[str] = mapped_column(String(10), nullable=False)
+    nombre: Mapped[str] = mapped_column(String(120), nullable=False, unique=True)
     telefono: Mapped[str | None] = mapped_column(String(20), nullable=True)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
     activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
@@ -55,6 +56,15 @@ class Conductor(Base):
     asignaciones: Mapped[list[AsignacionRuta]] = relationship(
         back_populates="conductor"
     )
+
+    def __init__(
+        self, code: str, nombre: str, telefono: str, password: str, id_grupo: int
+    ) -> None:
+        self.code = code
+        self.nombre = nombre
+        self.telefono = telefono
+        self.password = password
+        self.id_grupo = id_grupo
 
 
 class Ruta(Base):
@@ -70,6 +80,10 @@ class Ruta(Base):
     tiempo_estimado: Mapped[int | None] = mapped_column(
         Integer, nullable=True
     )  # minutos
+    line: Mapped[Geometry] = mapped_column(
+        Geometry(geometry_type="LINESTRING", srid=4326, spatial_index=True),
+        nullable=False,
+    )
 
     puntos_control: Mapped[list[PuntosControl]] = relationship(back_populates="ruta")
 
@@ -133,11 +147,6 @@ class Recorrido(Base):
     id_recorrido: Mapped[int] = mapped_column(
         Integer, ForeignKey("asignacion_ruta.id_asignacion"), nullable=False
     )
-    line: Mapped[Geometry] = mapped_column(
-        Geometry(geometry_type="LINESTRING", srid=4326, spatial_index=True),
-        nullable=False,
-    )
-
     ubicacion: Mapped[Any] = mapped_column(
         Geometry(geometry_type="POINT", srid=4326, spatial_index=True), nullable=False
     )
