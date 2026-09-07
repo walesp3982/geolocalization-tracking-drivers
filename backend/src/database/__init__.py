@@ -1,5 +1,6 @@
 from .database import Base
 from .models import (
+    Administrator,
     AsignacionRuta,
     Conductor,
     GrupoOperativo,
@@ -9,6 +10,7 @@ from .models import (
 )
 
 __all__ = [
+    "Administrator",
     "AsignacionRuta",
     "Base",
     "Conductor",
