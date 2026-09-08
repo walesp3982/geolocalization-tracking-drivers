@@ -4,11 +4,17 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from src.api.deps import get_current_conductor
 from src.database.models import Conductor
-from src.depends import DatabaseSession
-from src.schemas.auth import ConductorOut, LoginRequest, TokenResponse
+from src.depends import DatabaseSession, RedisClient
+from src.schemas.auth import (
+    ConductorOut,
+    LoginRequest,
+    ReloadAccessTokenRequest,
+    ReloadAccessTokenResponse,
+    TokenResponse,
+)
 from src.services.auth_services import (
-    autenticar_conductor,
-    generar_token_conductor,
+    create_new_access_token,
+    generate_first_authenfication,
 )
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
@@ -30,20 +36,21 @@ def _conductor_out(conductor: Conductor) -> ConductorOut:
 async def login(
     data: LoginRequest,
     db: DatabaseSession,
+    memory: RedisClient,
 ) -> TokenResponse:
     """El frontend manda codigo_unico + password."""
-    conductor = await autenticar_conductor(db, data.code, data.password)
-    if conductor is None:
-        # No distinguimos "no existe" de "contraseña incorrecta" por seguridad.
+    tokens_authentification = await generate_first_authenfication(
+        db, data.identifier, data.password, memory
+    )
+
+    if not tokens_authentification:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="id_conductor o contraseña incorrectos",
+            detail="credenciales incorrectos",
         )
-
-    token = await generar_token_conductor(db, conductor)
-
     return TokenResponse(
-        access_token=token,
+        access_token=tokens_authentification.access_token,
+        refresh_token=tokens_authentification.refresh_token,
     )
 
 
@@ -57,12 +64,20 @@ async def me(
 
 
 # Emite un tocken cada 7 dias
-@router.post("/refresh", response_model=TokenResponse)
+@router.post("/refresh", response_model=ReloadAccessTokenResponse)
 async def refresh(
     db: DatabaseSession,
-    conductor: Annotated[Conductor, Depends(get_current_conductor)],
-) -> TokenResponse:
-    token = await generar_token_conductor(db, conductor)
-    return TokenResponse(
-        access_token=token,
+    memory: RedisClient,
+    token: ReloadAccessTokenRequest,
+) -> ReloadAccessTokenResponse:
+    new_access_token: str | None = await create_new_access_token(
+        db, memory, token.refresh_token
+    )
+    if not new_access_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token expired or invalid",
+        )
+    return ReloadAccessTokenResponse(
+        access_token=new_access_token,
     )

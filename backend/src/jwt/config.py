@@ -11,7 +11,7 @@ class JWTSettings(BaseSettings):
     )
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRE_DAYS: int = 7  # duración del token: 7 días
+    JWT_EXPIRE_MINUTES: int = 30  # duración del token: 7 días
 
 
 @lru_cache
