@@ -25,7 +25,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 # Generacion del tokend de acceso con limite de tiempo de 7 dias que esta en config
 def create_access_token(data: dict[str, Any]) -> str:
     now = datetime.now(UTC)
-    expire = now + timedelta(days=settings.JWT_EXPIRE_DAYS)
+    expire = now + timedelta(minutes=settings.JWT_EXPIRE_MINUTES)
 
     to_encode = data.copy()
     to_encode.update({"exp": expire, "iat": now})

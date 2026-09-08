@@ -1,12 +1,14 @@
 # Que datos trabajar en el frontend
 
 
-from pydantic import BaseModel
+from typing import Annotated, Literal
+
+from pydantic import BaseModel, Field
 
 
 # Datos con de ingreso para la autenticacion
 class LoginRequest(BaseModel):
-    code: str
+    identifier: str
     password: str
 
 
@@ -21,14 +23,36 @@ class ConductorOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class PayloadData(BaseModel):
+class PayloadConductor(BaseModel):
     sub: int
     name: str
     id_group: int
     is_jefe_grupo: bool
+    role: Literal["conductor"] = "conductor"
+
+
+class PayloadAdministrador(BaseModel):
+    sub: int
+    name: str
+    role: Literal["admin"] = "admin"
+
+
+Payload = Annotated[
+    PayloadConductor | PayloadAdministrador,
+    Field(discriminator="role"),
+]
 
 
 # token de salida luego de la autenticacion
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
+
+
+class ReloadAccessTokenResponse(BaseModel):
+    access_token: str
+
+
+class ReloadAccessTokenRequest(BaseModel):
+    refresh_token: str
