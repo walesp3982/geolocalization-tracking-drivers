@@ -9,10 +9,22 @@ dependencies = [
     "asyncpg>=0.31.0",
     "fastapi[standard]>=0.141.1",
     "geoalchemy2>=0.20.0",
+    "passlib>=1.7.4",
     "psycopg>=3.3.5",
+    "pyjwt>=2.13.0",
     "redis>=8.1.0",
     "scalar-fastapi>=1.9.0",
     "shapely>=2.1.2",
     "sqlalchemy>=2.0.52",
 ]
 
+[tool.ruff]
+# Directorios que Ruff debe ignorar por completo
+exclude = [
+    ".git",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+    "alembic/versions",
+]

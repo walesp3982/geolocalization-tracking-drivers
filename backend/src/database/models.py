@@ -23,17 +23,25 @@ class GrupoOperativo(Base):
     __tablename__ = "grupo_operativo"
 
     id_grupo: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    nombre_grupo: Mapped[str] = mapped_column(String(20), nullable=False)
-    id_representante: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    nombre_grupo: Mapped[str] = mapped_column(String(20), nullable=False, unique=True)
+    id_representante: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey(
+            "conductor.id_conductor",
+            use_alter=True,
+            name="fk_grupo_operativo_representante",
+        ),
+        nullable=True,
+    )
 
     representante: Mapped[Conductor | None] = relationship(
-        "conductor", foreign_keys=[id_representante], uselist=False
+        "Conductor", foreign_keys=[id_representante], uselist=False
     )
 
     conductores: Mapped[list[Conductor]] = relationship(
-        back_populates="grupo_operativo"
+        "Conductor", back_populates="grupo_operativo", foreign_keys="Conductor.id_grupo"
     )
-    rutas: Mapped[list[Ruta]] = relationship(back_populates="grupo_operativo")
+    rutas: Mapped[list[Ruta]] = relationship("Ruta", back_populates="grupo_operativo")
 
 
 class Conductor(Base):
@@ -42,7 +50,8 @@ class Conductor(Base):
     id_conductor: Mapped[int] = mapped_column(
         Integer, primary_key=True, autoincrement=True
     )
-    nombre: Mapped[str] = mapped_column(String(120), nullable=False)
+    code: Mapped[str] = mapped_column(String(10), nullable=False)
+    nombre: Mapped[str] = mapped_column(String(120), nullable=False, unique=True)
     telefono: Mapped[str | None] = mapped_column(String(20), nullable=True)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
     activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
@@ -51,10 +60,21 @@ class Conductor(Base):
         Integer, ForeignKey("grupo_operativo.id_grupo"), nullable=False
     )
 
-    grupo_operativo: Mapped[GrupoOperativo] = relationship(back_populates="conductores")
+    grupo_operativo: Mapped[GrupoOperativo] = relationship(
+        "GrupoOperativo", back_populates="conductores", foreign_keys=[id_grupo]
+    )
     asignaciones: Mapped[list[AsignacionRuta]] = relationship(
         back_populates="conductor"
     )
+
+    def __init__(
+        self, code: str, nombre: str, telefono: str, password: str, id_grupo: int
+    ) -> None:
+        self.code = code
+        self.nombre = nombre
+        self.telefono = telefono
+        self.password = password
+        self.id_grupo = id_grupo
 
 
 class Ruta(Base):
@@ -70,6 +90,17 @@ class Ruta(Base):
     tiempo_estimado: Mapped[int | None] = mapped_column(
         Integer, nullable=True
     )  # minutos
+    line: Mapped[Geometry] = mapped_column(
+        Geometry(geometry_type="LINESTRING", srid=4326, spatial_index=True),
+        nullable=False,
+    )
+    grupo_operativo: Mapped[GrupoOperativo] = relationship(
+        "GrupoOperativo",
+        back_populates="rutas",
+    )
+    asignaciones: Mapped[list[AsignacionRuta]] = relationship(
+        "AsignacionRuta", back_populates="ruta"
+    )
 
     puntos_control: Mapped[list[PuntosControl]] = relationship(back_populates="ruta")
 
@@ -112,7 +143,7 @@ class AsignacionRuta(Base):
         DateTime(timezone=True), nullable=True
     )
 
-    ruta: Mapped[Ruta] = relationship(back_populates="asignaciones")
+    ruta: Mapped[Ruta] = relationship("Ruta", back_populates="asignaciones")
     conductor: Mapped[Conductor] = relationship(back_populates="asignaciones")
     recorridos: Mapped[list[Recorrido]] = relationship(back_populates="asignacion")
 
@@ -133,11 +164,6 @@ class Recorrido(Base):
     id_recorrido: Mapped[int] = mapped_column(
         Integer, ForeignKey("asignacion_ruta.id_asignacion"), nullable=False
     )
-    line: Mapped[Geometry] = mapped_column(
-        Geometry(geometry_type="LINESTRING", srid=4326, spatial_index=True),
-        nullable=False,
-    )
-
     ubicacion: Mapped[Any] = mapped_column(
         Geometry(geometry_type="POINT", srid=4326, spatial_index=True), nullable=False
     )
@@ -145,3 +171,20 @@ class Recorrido(Base):
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     asignacion: Mapped[AsignacionRuta] = relationship(back_populates="recorridos")
+
+
+class Administrator(Base):
+    __tablename__ = "administradores"
+
+    id_administrador: Mapped[int] = mapped_column(
+        BigInteger, primary_key=True, autoincrement=True
+    )
+
+    name: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+    )
+
+    email: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+
+    password: Mapped[str] = mapped_column(String(200), nullable=False)
