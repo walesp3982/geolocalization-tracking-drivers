@@ -11,7 +11,7 @@ class DatabaseConfig(BaseSettings):
     PASSWORD: str
 
     model_config = SettingsConfigDict(
-        env_prefix="DB_", env_file=".env", env_file_encoding="utf-8"
+        env_prefix="DB_", env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
 
 
@@ -31,5 +31,5 @@ class RedisConfig(BaseSettings):
     PORT: int
 
     model_config = SettingsConfigDict(
-        env_prefix="REDIS_", env_file=".env", env_file_encoding="utf-8"
+        env_prefix="REDIS_", env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
