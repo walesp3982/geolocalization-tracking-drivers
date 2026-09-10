@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Expo">
+  <trk>
+    <name>Ruta Chofer</name>
+    <trkseg>
+      <trkpt lat="-16.5000" lon="-68.1500"></trkpt>
+      <trkpt lat="-16.5010" lon="-68.1510"></trkpt>
+      <trkpt lat="-16.5020" lon="-68.1520"></trkpt>
+      <trkpt lat="-16.5030" lon="-68.1530"></trkpt>
+      <trkpt lat="-16.5040" lon="-68.1540"></trkpt>
+    </trkseg>
+  </trk>
+</gpx>

@@ -4,8 +4,7 @@ import string
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from src.api.deps import JefeGrupo
-from src.database import Conductor
+from src.api.deps import Conductor, GetJefeGrupo
 from src.depends import DatabaseSession
 from src.jwt.security import hash_password
 
@@ -22,12 +21,17 @@ class NewConductor(BaseModel):
     password: str
 
 
-router = APIRouter(prefix="/conductor", tags=["conductor"])
+router = APIRouter(prefix="/jefe-grupo", tags=["Jefe de Grupo"])
+
+
+@router.get("/me")
+async def get_info(jefe: GetJefeGrupo):
+    return jefe
 
 
 @router.post("/chofer")
 async def register_new_conductor(
-    input: NewConductor, jefe: JefeGrupo, session: DatabaseSession
+    input: NewConductor, jefe: GetJefeGrupo, session: DatabaseSession
 ):
     # Hashing passowrd
     hashed = hash_password(input.password)
