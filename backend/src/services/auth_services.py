@@ -150,33 +150,49 @@ async def save_metadata(
     return refresh
 
 
+async def generate_payload(
+    db: AsyncSession, identifier: str, password: str
+) -> tuple[str, Literal["conductor", "admin"]] | None:
+    payload_as_conductor = await generar_token_conductor(db, identifier, password)
+    if payload_as_conductor:
+        return (create_access_token(payload_as_conductor.model_dump()), "conductor")
+    payload_as_admin = await generar_token_administrador(db, identifier, password)
+    if payload_as_admin:
+        return (create_access_token(payload_as_admin.model_dump()), "admin")
+    return None
+
+
+EXPIRE_REFRESH_TOKEN_DAYS = 7
+
+
 async def generate_first_authenfication(
     db: AsyncSession, identifier: str, password: str, memory: Redis
 ) -> Authentification | None:
-    EXPIRE_REFRESH_TOKEN_DAYS = 7
-    payload_as_conductor = await generar_token_conductor(db, identifier, password)
+
+    payload_generating = await generate_payload(db, identifier, password)
+    if not payload_generating:
+        return None
+
+    token, role = payload_generating
+
     metadata = MetadataInMemoryUser(
         identifier=identifier,
         expires_at=datetime.datetime.now(tz=datetime.UTC)
         + datetime.timedelta(days=EXPIRE_REFRESH_TOKEN_DAYS),
     )
-    if payload_as_conductor:
-        refresh_token = await save_metadata(memory, metadata)
-        return Authentification(
-            access_token=create_access_token(payload_as_conductor.model_dump()),
-            refresh_token=refresh_token,
-        )
 
-    payload_as_admin = await generar_token_administrador(db, identifier, password)
-    if payload_as_admin:
-        metadata.role = "admin"
-        refresh_token = await save_metadata(memory, metadata)
+    match role:
+        case "conductor":
+            metadata.role = "conductor"
+        case "admin":
+            metadata.role = "admin"
 
-        return Authentification(
-            access_token=create_access_token(payload_as_admin.model_dump()),
-            refresh_token=refresh_token,
-        )
-    return None
+    refresh_token = await save_metadata(memory, metadata)
+
+    return Authentification(
+        access_token=token,
+        refresh_token=refresh_token,
+    )
 
 
 async def generar_token_conductor_sin_password(
@@ -216,7 +232,7 @@ async def generar_token_administrador_sin_password(
     )
 
 
-async def create_new_access_token(
+async def reload_access_token(
     db: AsyncSession, memory: Redis, refresh_token: str
 ) -> str | None:
     data = await memory.get(f"refresh_token:{refresh_token}")
@@ -246,4 +262,6 @@ async def create_new_access_token(
     if payload is None:
         return None
 
-    return create_access_token(payload.model_dump())
+    token = create_access_token(payload.model_dump())
+
+    return token
