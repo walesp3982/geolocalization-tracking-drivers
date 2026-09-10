@@ -12,8 +12,8 @@ from src.schemas.auth import (
     TokenResponse,
 )
 from src.services.auth_services import (
-    create_new_access_token,
     generate_first_authenfication,
+    reload_access_token,
 )
 
 router = APIRouter(prefix="/auth")
@@ -70,9 +70,7 @@ async def refresh(
     refresh_token: str = Form(),
     grant_type: str = Form(),
 ) -> ReloadAccessTokenResponse:
-    new_access_token: str | None = await create_new_access_token(
-        db, memory, refresh_token
-    )
+    new_access_token: str | None = await reload_access_token(db, memory, refresh_token)
     if not new_access_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
