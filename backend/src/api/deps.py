@@ -15,7 +15,7 @@ from src.depends import DatabaseSession
 from src.jwt.security import decode_access_token
 
 # tokenUrl es solo referencial para el botón "Authorize" de /docs.
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", refreshUrl="/auth/refresh")
 
 CREDENTIALS_EXCEPTION = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,

@@ -4,7 +4,11 @@ from scalar_fastapi import Theme, add_scalar_reference
 from src.api.router import auth, chofer
 from src.depends import DatabaseSession
 
-app = FastAPI()
+app = FastAPI(
+    servers=[
+        {"url": "http://localhost:8000", "description": "Local dev"},
+    ]
+)
 app.include_router(auth.router)
 app.include_router(chofer.router)
 
