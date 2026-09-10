@@ -1,14 +1,13 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Form, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 
 from src.api.deps import get_current_conductor
 from src.database.models import Conductor
 from src.depends import DatabaseSession, RedisClient
 from src.schemas.auth import (
     ConductorOut,
-    LoginRequest,
-    ReloadAccessTokenRequest,
     ReloadAccessTokenResponse,
     TokenResponse,
 )
@@ -17,7 +16,7 @@ from src.services.auth_services import (
     generate_first_authenfication,
 )
 
-router = APIRouter(prefix="/auth", tags=["Autenticación"])
+router = APIRouter(prefix="/auth")
 
 
 # Vista para el login, recibe id_conductor, devuelve los datos del conductor
@@ -32,15 +31,15 @@ def _conductor_out(conductor: Conductor) -> ConductorOut:
 
 
 # ingreso de datos para el login, recibe id_conductor y password, devuelve un token de acceso
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login")
 async def login(
-    data: LoginRequest,
+    data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: DatabaseSession,
     memory: RedisClient,
 ) -> TokenResponse:
     """El frontend manda codigo_unico + password."""
     tokens_authentification = await generate_first_authenfication(
-        db, data.identifier, data.password, memory
+        db, data.username, data.password, memory
     )
 
     if not tokens_authentification:
@@ -68,10 +67,11 @@ async def me(
 async def refresh(
     db: DatabaseSession,
     memory: RedisClient,
-    token: ReloadAccessTokenRequest,
+    refresh_token: str = Form(),
+    grant_type: str = Form(),
 ) -> ReloadAccessTokenResponse:
     new_access_token: str | None = await create_new_access_token(
-        db, memory, token.refresh_token
+        db, memory, refresh_token
     )
     if not new_access_token:
         raise HTTPException(
