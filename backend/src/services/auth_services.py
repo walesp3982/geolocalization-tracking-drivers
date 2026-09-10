@@ -100,7 +100,7 @@ async def generar_token_conductor(
     is_jefe_grupo = is_jefe_conductor(conductor, grupo)
 
     payload = PayloadConductor(
-        sub=conductor.id_conductor,
+        sub=str(conductor.id_conductor),
         name=conductor.nombre,
         id_group=conductor.id_grupo,
         is_jefe_grupo=is_jefe_grupo,
@@ -119,7 +119,7 @@ async def generar_token_administrador(
         return None
 
     payload = PayloadAdministrador(
-        name=admin.name, role="admin", sub=admin.id_administrador
+        name=admin.name, role="admin", sub=str(admin.id_administrador)
     )
 
     return payload
@@ -209,7 +209,7 @@ async def generar_token_conductor_sin_password(
         raise ValueError("Cannot found group id")
 
     return PayloadConductor(
-        sub=conductor.id_conductor,
+        sub=str(conductor.id_conductor),
         name=conductor.nombre,
         id_group=conductor.id_grupo,
         is_jefe_grupo=is_jefe_conductor(conductor, grupo),
@@ -228,7 +228,7 @@ async def generar_token_administrador_sin_password(
         return None
 
     return PayloadAdministrador(
-        name=admin.name, role="admin", sub=admin.id_administrador
+        name=admin.name, role="admin", sub=str(admin.id_administrador)
     )
 
 

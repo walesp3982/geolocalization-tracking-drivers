@@ -24,7 +24,7 @@ class ConductorOut(BaseModel):
 
 
 class PayloadConductor(BaseModel):
-    sub: int
+    sub: str
     name: str
     id_group: int
     is_jefe_grupo: bool
@@ -32,7 +32,7 @@ class PayloadConductor(BaseModel):
 
 
 class PayloadAdministrador(BaseModel):
-    sub: int
+    sub: str
     name: str
     role: Literal["admin"] = "admin"
 

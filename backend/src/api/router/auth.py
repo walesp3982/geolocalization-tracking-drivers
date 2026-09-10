@@ -3,11 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Form, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-from src.api.deps import get_current_conductor
-from src.database.models import Conductor
 from src.depends import DatabaseSession, RedisClient
 from src.schemas.auth import (
-    ConductorOut,
     ReloadAccessTokenResponse,
     TokenResponse,
 )
@@ -16,18 +13,7 @@ from src.services.auth_services import (
     reload_access_token,
 )
 
-router = APIRouter(prefix="/auth")
-
-
-# Vista para el login, recibe id_conductor, devuelve los datos del conductor
-def _conductor_out(conductor: Conductor) -> ConductorOut:
-    return ConductorOut(
-        id_conductor=conductor.id_conductor,
-        nombre=conductor.nombre,
-        telefono=conductor.telefono,
-        id_grupo=conductor.id_grupo,
-        activo=conductor.activo,
-    )
+router = APIRouter(prefix="/auth", tags=["Autentificación"])
 
 
 # ingreso de datos para el login, recibe id_conductor y password, devuelve un token de acceso
@@ -51,15 +37,6 @@ async def login(
         access_token=tokens_authentification.access_token,
         refresh_token=tokens_authentification.refresh_token,
     )
-
-
-# Mostrar datos del conductor autenticado y su rol
-@router.get("/me", response_model=ConductorOut)
-async def me(
-    conductor: Annotated[Conductor, Depends(get_current_conductor)],
-) -> ConductorOut:
-    """Devuelve los datos del conductor autenticado y su rol actual."""
-    return _conductor_out(conductor)
 
 
 # Emite un tocken cada 7 dias
