@@ -159,6 +159,13 @@ class AsignacionRuta(Base):
     conductor: Mapped[Conductor] = relationship(back_populates="asignaciones")
     recorridos: Mapped[list[Recorrido]] = relationship(back_populates="asignacion")
 
+    def __init__(
+        self, id_conductor: int, id_ruta: int, datetime_inicio: datetime
+    ) -> None:
+        self.id_conductor = id_conductor
+        self.id_ruta = id_ruta
+        self.fecha_hora_inicio = self.fecha_hora_inicio
+
     @property
     def duracion(self) -> timedelta | None:
         """Duración calculada en runtime, no persistida en BD."""
