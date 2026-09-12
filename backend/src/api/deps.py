@@ -31,9 +31,7 @@ async def get_current_conductor(
     db: DatabaseSession,
 ) -> Conductor:
     try:
-        print("Token: ", token)
         payload = decode_access_token(token)
-        print("Payload: ", payload)
         sub = payload.get("sub")
         role: str = str(payload.get("role"))
         if sub is None or role != "conductor":
@@ -45,8 +43,7 @@ async def get_current_conductor(
             detail="El token expiró, iniciá sesión nuevamente",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except jwt.PyJWTError as e:
-        print(e)
+    except jwt.PyJWTError:
         raise CREDENTIALS_EXCEPTION
 
     conductor = await db.get(Conductor, int(sub))
