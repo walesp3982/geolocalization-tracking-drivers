@@ -4,10 +4,10 @@ import string
 import uuid
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Body, Header, HTTPException, Query, status
+from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query, status
 from geojson_pydantic import Feature, LineString
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import func, select
+from sqlalchemy import asc, desc, func, select
 from sqlalchemy.orm import selectinload
 
 from src.api.deps import GetJefeGrupo
@@ -134,8 +134,6 @@ async def get_all_conductor_by_group(
 
 
 class AsignacionRutaRequest(BaseModel):
-    conductor_id: int
-    ruta_id: int
     fecha_inicio: datetime.datetime = Field(
         ...,
         description="Fecha y hora del evento. Debe ser posterior al momento de la solicitud.",
@@ -191,21 +189,12 @@ class RutaResponse(BaseModel):
         )
 
 
-class AsignacionRutaResponse(BaseModel):
-    conductor: ConductorResponse
-    ruta: RutaResponse
-    fecha_hora_inicio: datetime.datetime
-    fecha_hora_final: datetime.datetime | None = None
-
-
-@router.post("/conductores/{conductor_id}/asignation_ruta")
-async def asignar_ruta_a_chofer(
+# Creating dep for verity conductor_id access point is from the jefe grupo
+async def has_permission_access_to_conductor(
     session: DatabaseSession,
-    solicitud_asignacion: Annotated[AsignacionRutaRequest, Body()],
     conductor_id: int,
     jefe: GetJefeGrupo,
-):
-    # Get conductor_id and ruta_id
+) -> Conductor:
     stmt = select(Conductor).where(Conductor.id_conductor == conductor_id)
     conductor = await session.scalar(stmt)
 
@@ -221,13 +210,21 @@ async def asignar_ruta_a_chofer(
             detail="Don't not have permission to assign this conductor",
         )
 
-    stmt = select(Ruta).where(Ruta.id_ruta == solicitud_asignacion.ruta_id)
+    return conductor
+
+
+async def has_premission_access_to_route(
+    session: DatabaseSession,
+    ruta_id: int,
+    jefe: GetJefeGrupo,
+) -> Ruta:
+    stmt = select(Ruta).where(Ruta.id_ruta == ruta_id)
     ruta = await session.scalar(stmt)
 
     if not ruta:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Ruta no found {solicitud_asignacion.ruta_id}",
+            detail=f"Ruta no found {ruta_id}",
         )
 
     if ruta.id_grupo_operativo != jefe.id_grupo:
@@ -235,6 +232,24 @@ async def asignar_ruta_a_chofer(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Don't not have permission to assign this route: {ruta.id_grupo_operativo}",
         )
+
+    return ruta
+
+
+class AsignacionRutaResponse(BaseModel):
+    conductor: ConductorResponse
+    ruta: RutaResponse
+    fecha_hora_inicio: datetime.datetime
+    fecha_hora_final: datetime.datetime | None = None
+
+
+@router.post("/ruta/{ruta_id}/conductores/{conductor_id}/asignaciones")
+async def asignar_ruta_a_chofer(
+    session: DatabaseSession,
+    solicitud_asignacion: Annotated[AsignacionRutaRequest, Body()],
+    conductor: Annotated[Conductor, Depends(has_permission_access_to_conductor)],
+    ruta: Annotated[Ruta, Depends(has_premission_access_to_route)],
+):
 
     asignacion = AsignacionRuta(
         id_ruta=ruta.id_ruta,
@@ -245,6 +260,7 @@ async def asignar_ruta_a_chofer(
     session.add(asignacion)
     await session.commit()
     await session.refresh(asignacion)
+
     stmt = (
         select(AsignacionRuta)
         .where(AsignacionRuta.id_asignacion == asignacion.id_asignacion)
@@ -291,4 +307,157 @@ async def asignar_ruta_a_chofer(
     )
 
 
-# Creating dep for verity grupo_id access point is from the jefe grupo
+class RutaByAsignacion(BaseModel):
+    id_ruta: int
+    numero_ruta: str
+    lugar_inicial: str
+    lugar_final: str
+
+    @staticmethod
+    def from_model(ruta: Ruta) -> "RutaByAsignacion":
+        return RutaByAsignacion(
+            id_ruta=ruta.id_ruta,
+            numero_ruta=ruta.numero_ruta,
+            lugar_final=ruta.lugar_final,
+            lugar_inicial=ruta.lugar_inicial,
+        )
+
+
+class AsignationResponse(BaseModel):
+    id_ruta: int
+    id_conductor: int
+    fecha_hora_inicio: datetime.datetime
+    fecha_hora_comienzo: datetime.datetime | None
+    fecha_hora_fin: datetime.datetime | None
+    conductor: ConductorResponse
+    ruta: RutaByAsignacion
+
+
+class QueryAsignaciones(BaseModel):
+    order_by: Literal["newest", "oldest"] = "oldest"
+    since_date: datetime.datetime | None = None
+    page: int = Field(default=1, ge=1)
+    limit: int = Field(default=20, ge=1)
+
+
+class ListAsignations(BaseModel):
+    asignations: list[AsignationResponse]
+    actual_page: int
+    max_page: int
+
+
+@router.get("/asignaciones")
+async def show_all_asignations(
+    query: Annotated[QueryAsignaciones, Query()],
+    jefe: GetJefeGrupo,
+    session: DatabaseSession,
+) -> ListAsignations:
+    stmt = (
+        select(AsignacionRuta)
+        .join(AsignacionRuta.conductor)
+        .join(AsignacionRuta.ruta)
+        .where(Conductor.id_grupo == jefe.id_grupo)
+        .where(Ruta.id_grupo_operativo == jefe.id_grupo)
+    )
+
+    if not query.since_date:
+        stmt.where(
+            AsignacionRuta.fecha_hora_comienzo >= datetime.datetime.now(tz=datetime.UTC)
+        )
+    else:
+        stmt.where(AsignacionRuta.fecha_hora_comienzo >= query.since_date)
+
+    stmt_count = stmt.with_only_columns(func.count(), maintain_column_froms=True)
+    count = await session.scalar(stmt_count) or 0
+
+    max_page = count // query.limit + 1
+
+    match query.order_by:
+        case "newest":
+            stmt = stmt.order_by(desc(AsignacionRuta.fecha_hora_comienzo))
+        case "oldest":
+            stmt = stmt.order_by(asc(AsignacionRuta.fecha_hora_comienzo))
+
+    stmt = stmt.limit(query.limit).offset((query.page - 1) * query.limit)
+    result = await session.scalars(stmt)
+    asignations: list[AsignationResponse] = []
+    for a in result.all():
+        asignation = AsignationResponse(
+            id_ruta=a.id_ruta,
+            id_conductor=a.id_conductor,
+            fecha_hora_comienzo=a.fecha_hora_comienzo,
+            fecha_hora_fin=a.fecha_hora_fin,
+            fecha_hora_inicio=a.fecha_hora_inicio,
+            conductor=ConductorResponse.from_model(a.conductor),
+            ruta=RutaByAsignacion.from_model(a.ruta),
+        )
+
+        asignations.append(asignation)
+
+    return ListAsignations(
+        asignations=[a for a in asignations],
+        actual_page=query.page,
+        max_page=max_page,
+    )
+
+
+class AsignationByConductor(BaseModel):
+    id_ruta: int
+    id_conductor: int
+    fecha_hora_inicio: datetime.datetime
+    fecha_hora_fin: datetime.datetime | None
+    fecha_hora_comienzo: datetime.datetime | None
+
+
+class AsignationsByConductor(BaseModel):
+    asignations: list[AsignationByConductor]
+    actual_page: int
+    max_page: int
+
+
+class QueryAsignationsByConductor(BaseModel):
+    filter: Literal["old", "new"] = "new"
+    from_date: datetime.datetime = datetime.datetime.now(datetime.UTC)
+    page: int = Field(default=1, ge=1)
+    limit: int = Field(default=20, ge=1)
+
+
+@router.get("/conductores/{conductor_id}/asignaciones")
+async def get_asignations_by_conductor(
+    conductor: Annotated[Conductor, Depends(has_permission_access_to_conductor)],
+    session: DatabaseSession,
+    query: Annotated[QueryAsignationsByConductor, Query()],
+) -> AsignationsByConductor:
+    stmt = select(AsignacionRuta).where(
+        AsignacionRuta.id_conductor == conductor.id_conductor
+    )
+
+    match query.filter:
+        case "new":
+            stmt = stmt.where(
+                AsignacionRuta.fecha_hora_inicio > query.from_date
+            ).order_by(asc(AsignacionRuta.fecha_hora_inicio))
+        case "old":
+            stmt = stmt.where(
+                AsignacionRuta.fecha_hora_inicio < query.from_date
+            ).order_by(desc(AsignacionRuta.fecha_hora_inicio))
+
+    stmt_count = stmt.with_only_columns(func.count(), maintain_column_froms=True)
+    count = await session.scalar(stmt_count) or 0
+
+    max_page = count // query.limit + 1
+
+    result = await session.scalars(stmt)
+    asignations: list[AsignationByConductor] = []
+    for a in result.all():
+        asignation = AsignationByConductor(
+            id_conductor=a.id_conductor,
+            fecha_hora_inicio=a.fecha_hora_inicio,
+            fecha_hora_comienzo=a.fecha_hora_comienzo,
+            id_ruta=a.id_ruta,
+            fecha_hora_fin=a.fecha_hora_fin,
+        )
+        asignations.append(asignation)
+    return AsignationsByConductor(
+        asignations=asignations, max_page=max_page, actual_page=query.page
+    )

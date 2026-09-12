@@ -151,7 +151,7 @@ class AsignacionRuta(Base):
     fecha_hora_inicio: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
-    fecha_hora_comienzo: Mapped[datetime] = mapped_column(
+    fecha_hora_comienzo: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
     fecha_hora_fin: Mapped[datetime | None] = mapped_column(
