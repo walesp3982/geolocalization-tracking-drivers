@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import uuid
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
 from geoalchemy2 import Geometry
 from sqlalchemy import (
+    UUID,
     BigInteger,
     Boolean,
     DateTime,
@@ -55,6 +57,9 @@ class Conductor(Base):
     telefono: Mapped[str | None] = mapped_column(String(20), nullable=True)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
     activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    idempotency_key: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False, unique=True
+    )
 
     id_grupo: Mapped[int] = mapped_column(
         Integer, ForeignKey("grupo_operativo.id_grupo"), nullable=False
@@ -68,13 +73,20 @@ class Conductor(Base):
     )
 
     def __init__(
-        self, code: str, nombre: str, telefono: str, password: str, id_grupo: int
+        self,
+        code: str,
+        nombre: str,
+        telefono: str,
+        password: str,
+        id_grupo: int,
+        idem_key: uuid.UUID,
     ) -> None:
         self.code = code
         self.nombre = nombre
         self.telefono = telefono
         self.password = password
         self.id_grupo = id_grupo
+        self.idempotency_key = idem_key
 
 
 class Ruta(Base):
@@ -139,6 +151,9 @@ class AsignacionRuta(Base):
     fecha_hora_inicio: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
+    fecha_hora_comienzo: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     fecha_hora_fin: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
@@ -146,6 +161,13 @@ class AsignacionRuta(Base):
     ruta: Mapped[Ruta] = relationship("Ruta", back_populates="asignaciones")
     conductor: Mapped[Conductor] = relationship(back_populates="asignaciones")
     recorridos: Mapped[list[Recorrido]] = relationship(back_populates="asignacion")
+
+    def __init__(
+        self, id_conductor: int, id_ruta: int, datetime_inicio: datetime
+    ) -> None:
+        self.id_conductor = id_conductor
+        self.id_ruta = id_ruta
+        self.fecha_hora_inicio = self.fecha_hora_inicio
 
     @property
     def duracion(self) -> timedelta | None:
