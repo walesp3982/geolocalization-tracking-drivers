@@ -13,14 +13,8 @@ from src.jwt.security import verify_password, hash_password
 
 from src.api.deps import DatabaseSession, GetAdministrator
 from src.depends import DatabaseSession
-# ====================================================================
-# [1] SCHEMAS (Pydantic) -> irían en app/schemas/admin.py
-# ====================================================================
-# Estos son los "moldes" de entrada/salida de datos. El frontend (React
-# Native) va a mandar JSON que matchea los "Request" y va a recibir JSON
-# con la forma de los "Response"/"Out".
 
-
+#este iria en src/api/schemas/admin.py
 
 class AdminCambiarPassword(BaseModel):
     """Body para PATCH /admin/cambiar_password"""
@@ -96,19 +90,6 @@ class AdminOut(BaseModel):
     email: EmailStr
 
 
-# ====================================================================
-# [3] DEPENDENCIAS -> irían en app/api/deps.py
-# ====================================================================
-# Acá va tal cual tu `get_current_admin`, más los "alias" que ya usabas
-# (DatabaseSession, GetAdministrator) y un par de dependencias chicas
-# que ayudan a no repetir código en los endpoints (traer el grupo por id,
-# por ejemplo).
-# Alias de tipo para no repetir `Depends(get_db)` en cada endpoint.
-
-
-# Alias de tipo: cualquier endpoint que reciba `admin: GetAdministrator`
-# ya viene con el Administrator autenticado inyectado y validado.
-
 
 #Este iria en src/api/deps.py
 
@@ -140,14 +121,7 @@ def es_representante(conductor: Conductor, grupo: GrupoOperativo) -> bool:
     """
     return grupo.id_representante == conductor.id_conductor
 
-
-# ====================================================================
-# [4] ROUTER / ENDPOINTS -> irían en app/api/routers/admin.py
-# ====================================================================
-
-# --------------------------------------------------------------------
-# 4.1) CAMBIAR CONTRASEÑA DEL ADMINISTRADOR
-# --------------------------------------------------------------------
+#endpoint de admin
 router = APIRouter(prefix="/admin", tags=["Administrador"])
 
 
@@ -365,33 +339,3 @@ async def cambiar_representante_con_conductor_existente(
         representante=ConductorOut.model_validate(conductor),
     )
 
-
-# --------------------------------------------------------------------
-# 4.5) (Extra útil para el frontend) VER GRUPO + SABER QUIÉN ES REPRESENTANTE
-# --------------------------------------------------------------------
-@router.get(
-    "/grupo_operativo/{id_grupo}",
-    response_model=GrupoOperativoOut,
-)
-async def obtener_grupo_operativo(
-    grupo: GrupoOperativoPath,
-    admin: GetAdministrator,
-    db: DatabaseSession,
-) -> GrupoOperativoOut:
-    """
-    Devuelve el detalle de un grupo, incluyendo los datos del
-    representante actual (o `null` si todavía no tiene).
-    Útil para que React Native pinte la pantalla de "detalle de grupo".
-    """
-    representante_out = None
-    if grupo.id_representante is not None:
-        representante = await db.get(Conductor, grupo.id_representante)
-        if representante is not None:
-            representante_out = ConductorOut.model_validate(representante)
-
-    return GrupoOperativoOut(
-        id_grupo=grupo.id_grupo,
-        nombre_grupo=grupo.nombre_grupo,
-        id_representante=grupo.id_representante,
-        representante=representante_out,
-    )
