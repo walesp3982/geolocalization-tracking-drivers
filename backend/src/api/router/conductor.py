@@ -1,11 +1,11 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 from geoalchemy2.shape import from_shape
+from pydantic import BaseModel
 from shapely.geometry import Point
+from sqlalchemy import desc, select
+from sqlalchemy.orm import selectinload
 
 from src.api.deps import GetConductor
 from src.database.models import (
@@ -15,7 +15,6 @@ from src.database.models import (
 )
 from src.depends import DatabaseSession
 from src.jwt.security import hash_password
-
 
 router = APIRouter(
     prefix="/conductor",
@@ -27,7 +26,8 @@ router = APIRouter(
 # SCHEMAS
 # ==========================================
 
-class UpdateTelefono(BaseModel):
+
+class UpdateConductor(BaseModel):
     telefono: str
 
 
@@ -44,6 +44,7 @@ class NewRecorrido(BaseModel):
 # OBTENER INFORMACIÓN DEL CONDUCTOR
 # ==========================================
 
+
 @router.get("/me")
 async def get_info(
     conductor: GetConductor,
@@ -55,9 +56,10 @@ async def get_info(
 # CAMBIAR TELÉFONO
 # ==========================================
 
-@router.put("/telefono")
-async def update_telefono(
-    input: UpdateTelefono,
+
+@router.put("/conductor")
+async def update_conductor(
+    input: UpdateConductor,
     conductor: GetConductor,
     session: DatabaseSession,
 ):
@@ -74,6 +76,7 @@ async def update_telefono(
 # ==========================================
 # CAMBIAR CONTRASEÑA
 # ==========================================
+
 
 @router.put("/password")
 async def update_password(
@@ -94,6 +97,7 @@ async def update_password(
 # OBTENER ASIGNACIÓN Y RUTA
 # ==========================================
 
+
 @router.get("/asignacion")
 async def get_asignacion(
     conductor: GetConductor,
@@ -104,13 +108,13 @@ async def get_asignacion(
         .where(
             AsignacionRuta.id_conductor == conductor.id_conductor,
             AsignacionRuta.fecha_hora_fin.is_(None),
+            AsignacionRuta.fecha_hora_inicio >= datetime.now(UTC),
         )
         .options(
-            selectinload(AsignacionRuta.ruta)
-            .selectinload(Ruta.puntos_control),
-
+            selectinload(AsignacionRuta.ruta).selectinload(Ruta.puntos_control),
             selectinload(AsignacionRuta.recorridos),
         )
+        .order_by(desc(AsignacionRuta.fecha_hora_inicio))
     )
 
     asignacion = await session.scalar(stmt)
@@ -128,6 +132,7 @@ async def get_asignacion(
 # GUARDAR RECORRIDO
 # ==========================================
 
+
 @router.post("/recorrido")
 async def guardar_recorrido(
     input: NewRecorrido,
@@ -135,12 +140,9 @@ async def guardar_recorrido(
     session: DatabaseSession,
 ):
     # Buscar asignación activa
-    stmt = (
-        select(AsignacionRuta)
-        .where(
-            AsignacionRuta.id_conductor == conductor.id_conductor,
-            AsignacionRuta.fecha_hora_fin.is_(None),
-        )
+    stmt = select(AsignacionRuta).where(
+        AsignacionRuta.id_conductor == conductor.id_conductor,
+        AsignacionRuta.fecha_hora_fin.is_(None),
     )
 
     asignacion = await session.scalar(stmt)
@@ -164,7 +166,7 @@ async def guardar_recorrido(
     recorrido = Recorrido(
         id_recorrido=asignacion.id_asignacion,
         ubicacion=punto,
-        timestamp=datetime.now(),
+        timestamp=datetime.now(UTC),
     )
 
     session.add(recorrido)
