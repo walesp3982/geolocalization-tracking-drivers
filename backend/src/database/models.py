@@ -76,7 +76,7 @@ class Conductor(Base):
         self,
         code: str,
         nombre: str,
-        telefono: str,
+        telefono: str | None,
         password: str,
         id_grupo: int,
         idem_key: uuid.UUID,
