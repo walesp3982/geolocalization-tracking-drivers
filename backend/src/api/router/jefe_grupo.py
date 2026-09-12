@@ -461,3 +461,38 @@ async def get_asignations_by_conductor(
     return AsignationsByConductor(
         asignations=asignations, max_page=max_page, actual_page=query.page
     )
+
+
+@router.get("/rutas")
+async def get_rutas(session: DatabaseSession, jefe: GetJefeGrupo) -> list[RutaResponse]:
+    stmt = select(Ruta).where(Ruta.id_grupo_operativo == jefe.id_grupo)
+
+    result = await session.scalars(stmt)
+
+    rutas: list[RutaResponse] = []
+
+    for r in result.all():
+        stmt = select(func.ST_AsGeoJSON(Ruta.line).label("geojson")).where(
+            Ruta.id_ruta == r.id_ruta
+        )
+        result = await session.scalar(stmt)
+        if result is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed generating geojson",
+            )
+
+        geojson_str = result
+
+        line_feature = Feature[LineString, MetadataLine](
+            type="Feature",
+            geometry=LineString(**geojson_str),
+            properties=MetadataLine(
+                id_ruta=r.id_ruta,
+                numero_ruta=r.numero_ruta,
+            ),
+        )
+
+        rutas.append(RutaResponse.from_model(r, line_feature))
+
+    return rutas
