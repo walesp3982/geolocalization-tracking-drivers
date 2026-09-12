@@ -1,4 +1,4 @@
-
+#cambios
 from fastapi import Depends,HTTPException, status, APIRouter
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -24,10 +24,10 @@ class AdminCambiarPassword(BaseModel):
 
 class ConductorDatosBase(BaseModel):
     """Datos mínimos para dar de alta un Conductor nuevo."""
-    code: str = Field(..., max_length=10, description="Código interno del conductor")
+    code: str = Field(..., max_length=10)
     nombre: str = Field(..., max_length=120)
     telefono: str | None = Field(default=None, max_length=20)
-    password: str = Field(..., min_length=6, description="Password en texto plano, se hashea en el server")
+    password: str = Field(..., min_length=6)
 
 
 class GrupoOperativoCreate(BaseModel):
@@ -111,15 +111,6 @@ async def get_grupo_operativo_o_404(
     return grupo
 GrupoOperativoPath = Annotated[GrupoOperativo, Depends(get_grupo_operativo_o_404)]
 
-
-def es_representante(conductor: Conductor, grupo: GrupoOperativo) -> bool:
-    """
-    Implementa la regla que definiste:
-    un conductor ES representante de un grupo solo si su id coincide
-    con `grupo.id_representante`. Si no coincide, no lo es (y no tiene
-    permisos de administrador sobre ese grupo).
-    """
-    return grupo.id_representante == conductor.id_conductor
 
 #endpoint de admin
 router = APIRouter(prefix="/admin", tags=["Administrador"])
