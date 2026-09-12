@@ -1,29 +1,30 @@
-#cambios
-from fastapi import Depends,HTTPException, status, APIRouter
-
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
-
+# cambios
 from typing import Annotated
 
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from sqlalchemy import select
+
+from src.api.deps import GetAdministrator
 
 # Ajustá estos imports a la ubicación real de tus módulos:
 from src.database.models import Administrator, Conductor, GrupoOperativo
-from src.jwt.security import verify_password, hash_password
-
-from src.api.deps import DatabaseSession, GetAdministrator
 from src.depends import DatabaseSession
+from src.jwt.security import hash_password, verify_password
 
-#este iria en src/api/schemas/admin.py
+# este iria en src/api/schemas/admin.py
+
 
 class AdminCambiarPassword(BaseModel):
     """Body para PATCH /admin/cambiar_password"""
+
     password_actual: str
     password_nueva: str = Field(..., min_length=6)
 
 
 class ConductorDatosBase(BaseModel):
     """Datos mínimos para dar de alta un Conductor nuevo."""
+
     code: str = Field(..., max_length=10)
     nombre: str = Field(..., max_length=120)
     telefono: str | None = Field(default=None, max_length=20)
@@ -36,6 +37,7 @@ class GrupoOperativoCreate(BaseModel):
     Crea el grupo y, en la misma operación, crea al conductor que será
     su representante.
     """
+
     nombre_grupo: str = Field(..., max_length=20)
     representante: ConductorDatosBase
 
@@ -45,6 +47,7 @@ class CambiarRepresentanteNuevo(BaseModel):
     Body para PUT /admin/grupos-operativos/{id_grupo}/representante/nuevo-conductor
     Crea un Conductor nuevo y lo asigna como representante del grupo.
     """
+
     conductor: ConductorDatosBase
 
 
@@ -53,14 +56,16 @@ class CambiarRepresentanteExistente(BaseModel):
     Body para PUT /admin/grupos-operativos/{id_grupo}/representante/conductor-existente
     Usa un Conductor que ya existe en la base y lo asigna como representante.
     """
+
     id_conductor: int = Field(..., description="Debe pertenecer al mismo id_grupo")
-
-
 
 
 class ConductorOut(BaseModel):
     """Representación pública de un Conductor (lo que ve el frontend)."""
-    model_config = ConfigDict(from_attributes=True)  # permite construir desde el modelo ORM
+
+    model_config = ConfigDict(
+        from_attributes=True
+    )  # permite construir desde el modelo ORM
 
     id_conductor: int
     code: str
@@ -72,6 +77,7 @@ class ConductorOut(BaseModel):
 
 class GrupoOperativoOut(BaseModel):
     """Representación pública de un Grupo Operativo, incluye su representante."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id_grupo: int
@@ -80,9 +86,9 @@ class GrupoOperativoOut(BaseModel):
     representante: ConductorOut | None = None  # se arma manualmente en el endpoint
 
 
-
 class AdminOut(BaseModel):
     """Lo que se devuelve del administrador logueado (sin password)."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id_administrador: int
@@ -90,8 +96,8 @@ class AdminOut(BaseModel):
     email: EmailStr
 
 
+# Este iria en src/api/deps.py
 
-#Este iria en src/api/deps.py
 
 async def get_grupo_operativo_o_404(
     id_grupo: int,
@@ -109,10 +115,12 @@ async def get_grupo_operativo_o_404(
             detail="Grupo operativo no encontrado",
         )
     return grupo
+
+
 GrupoOperativoPath = Annotated[GrupoOperativo, Depends(get_grupo_operativo_o_404)]
 
 
-#endpoint de admin
+# endpoint de admin
 router = APIRouter(prefix="/admin", tags=["Administrador"])
 
 
@@ -124,7 +132,7 @@ async def get_info(admin: GetAdministrator):
 @router.patch("/cambiar_password", response_model=AdminOut)
 async def cambiar_password_admin(
     body: AdminCambiarPassword,
-    admin: GetAdministrator,   # <- ya viene autenticado gracias a la dependencia
+    admin: GetAdministrator,  # <- ya viene autenticado gracias a la dependencia
     db: DatabaseSession,
 ) -> Administrator:
     """
@@ -238,7 +246,7 @@ async def crear_grupo_operativo(
 )
 async def cambiar_representante_con_conductor_nuevo(
     body: CambiarRepresentanteNuevo,
-    grupo: GrupoOperativoPath,   # ya validado que existe (404 si no)
+    grupo: GrupoOperativoPath,  # ya validado que existe (404 si no)
     admin: GetAdministrator,
     db: DatabaseSession,
 ) -> GrupoOperativoOut:
@@ -329,4 +337,3 @@ async def cambiar_representante_con_conductor_existente(
         id_representante=grupo.id_representante,
         representante=ConductorOut.model_validate(conductor),
     )
-

@@ -68,7 +68,7 @@ class Conductor(Base):
     )
 
     def __init__(
-        self, code: str, nombre: str, telefono: str, password: str, id_grupo: int
+        self, code: str, nombre: str, telefono: str | None, password: str, id_grupo: int
     ) -> None:
         self.code = code
         self.nombre = nombre
