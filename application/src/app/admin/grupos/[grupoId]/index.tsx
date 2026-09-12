@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { gruposService } from "@/services/gruposService";
 import { Grupo } from "@/types/grupo";
@@ -40,24 +41,24 @@ export default function DetalleGrupoScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
+      <SafeAreaView style={styles.center}>
         <ActivityIndicator size="large" />
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (error || !grupo) {
     return (
-      <View style={styles.center}>
+      <SafeAreaView style={styles.center}>
         <Text style={styles.errorText}>{error ?? "Grupo no encontrado"}</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   const choferesActivos = grupo.choferes.filter((c) => c.activo);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Text style={styles.title}>{grupo.nombre}</Text>
       <Text style={styles.subtitle}>
         {grupo.representante
@@ -74,20 +75,15 @@ export default function DetalleGrupoScreen() {
           <Text style={styles.emptyText}>Este grupo todavía no tiene choferes activos.</Text>
         }
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() =>
-              router.push(`/admin/grupos/${grupoId}/chofer/${item.id}`)
-            }
-          >
+          <View style={styles.card}>
             <Text style={styles.cardTitle}>{item.nombre}</Text>
             <Text style={styles.cardSubtitle}>
               {item.rutas.length} ruta(s) asignada(s)
             </Text>
-          </TouchableOpacity>
+          </View>
         )}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

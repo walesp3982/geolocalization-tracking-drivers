@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Grupo } from "@/types/grupo";
 import { gruposService } from "@/services/gruposService";
@@ -21,7 +22,6 @@ export default function PanelAdminScreen() {
   const [error, setError] = useState<string | null>(null);
   const [eliminandoId, setEliminandoId] = useState<string | null>(null);
 
-  // Columnas más angostas en pantallas chicas para que no se corten
   const esPantallaChica = width < 380;
 
   const cargarGrupos = useCallback(async () => {
@@ -70,19 +70,19 @@ export default function PanelAdminScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
+      <SafeAreaView style={styles.center}>
         <ActivityIndicator size="large" />
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Panel de administración</Text>
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => router.push("/admin/grupos/crear")}
+          onPress={() => router.push("./crear")}
         >
           <Text style={styles.addButtonText}>+ Agregar grupo</Text>
         </TouchableOpacity>
@@ -95,7 +95,6 @@ export default function PanelAdminScreen() {
         </Text>
       )}
 
-      {/* Encabezado de la tabla */}
       <View style={[styles.row, styles.headerRow]}>
         <Text style={[styles.headerCell, styles.colNombre]}>Grupo</Text>
         <Text style={[styles.headerCell, styles.colRepresentante]}>
@@ -139,16 +138,22 @@ export default function PanelAdminScreen() {
               {item.representante ? item.representante.nombre : "Sin asignar"}
             </Text>
 
-            <View style={[styles.cell, styles.colAcciones, styles.acciones]}>
+            <View style={[styles.colAcciones, styles.acciones]}>
               <TouchableOpacity
                 style={styles.iconButton}
-                onPress={() => router.push(`/admin/grupos/${item.id}`)}
+                onPress={() => router.push({
+                  pathname: "[grupoId]" as any,
+                  params: { grupoId: item.id }
+                })}
               >
                 <Text style={styles.iconText}>👁️</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.iconButton}
-                onPress={() => router.push(`/admin/grupos/${item.id}/editar`)}
+                onPress={() => router.push({
+                  pathname: "[grupoId]/editar" as any,
+                  params: { grupoId: item.id }
+                })}
               >
                 <Text style={styles.iconText}>✏️</Text>
               </TouchableOpacity>
@@ -166,7 +171,7 @@ export default function PanelAdminScreen() {
           </View>
         )}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -189,8 +194,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   addButtonText: { color: "#fff", fontWeight: "600", fontSize: 13 },
-
-  // ---- Tabla ----
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -212,16 +215,12 @@ const styles = StyleSheet.create({
   cell: { fontSize: 14, color: "#111827" },
   subCell: { fontSize: 11, color: "#6b7280", marginTop: 2 },
   cellVacio: { color: "#9ca3af", fontStyle: "italic" },
-
-  // Anchos relativos de columnas (suman 1) para que se adapten al ancho de pantalla
   colNombre: { flex: 0.32 },
   colRepresentante: { flex: 0.36 },
   colAcciones: { flex: 0.32 },
-
   acciones: { flexDirection: "row", justifyContent: "flex-end" },
   iconButton: { paddingHorizontal: 5, paddingVertical: 4 },
   iconText: { fontSize: 16 },
-
   emptyText: { textAlign: "center", color: "#6b7280", marginTop: 40 },
   errorText: { color: "#dc2626", marginBottom: 10, fontSize: 12 },
 });

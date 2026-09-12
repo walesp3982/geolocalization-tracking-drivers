@@ -7,7 +7,7 @@ import * as Location from "expo-location";
 import { Button, StyleSheet, ActivityIndicator, Text } from "react-native";
 import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
 // NUEVO: pantalla de panel de administración (tabla de grupos)
-import PanelAdminScreen from "./admin/grupos";
+import PanelAdminScreen from "./admin/grupos/index";
 
 type MapRegion = {
   latitude: number;
