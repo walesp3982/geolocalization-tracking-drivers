@@ -1,4 +1,5 @@
 # cambios
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -214,6 +215,7 @@ async def crear_grupo_operativo(
             telefono=datos.telefono,
             password=hash_password(datos.password),
             id_grupo=nuevo_grupo.id_grupo,
+            idem_key=uuid.uuid4(),
         )
         db.add(nuevo_conductor)
         await db.flush()  # genera nuevo_conductor.id_conductor
@@ -272,6 +274,7 @@ async def cambiar_representante_con_conductor_nuevo(
         telefono=datos.telefono,
         password=hash_password(datos.password),
         id_grupo=grupo.id_grupo,  # pertenece al grupo de la URL
+        idem_key=uuid.uuid4(),
     )
     db.add(nuevo_conductor)
     await db.flush()  # para tener nuevo_conductor.id_conductor
