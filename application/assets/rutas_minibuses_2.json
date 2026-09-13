@@ -1,0 +1,803 @@
+[
+  {
+    "linea": "238",
+    "grupo": "Grupo B",
+    "nombre": "Línea 238 - Pura Pura / Cementerio / Calacoto / Achumani",
+    "ida": [
+      {
+        "latitude": -16.4812,
+        "longitude": -68.1485,
+        "descripcion": "Calle Alcides Arguedas esq. Guadalquivir"
+      },
+      {
+        "latitude": -16.484,
+        "longitude": -68.1462,
+        "descripcion": "Calle Manuripi - Calle Policarpio Eyzaguirre"
+      },
+      {
+        "latitude": -16.4875,
+        "longitude": -68.1438,
+        "descripcion": "Calle José María Asín"
+      },
+      {
+        "latitude": -16.491,
+        "longitude": -68.1412,
+        "descripcion": "Cementerio General - Av. Mariano Baptista"
+      },
+      {
+        "latitude": -16.4935,
+        "longitude": -68.1401,
+        "descripcion": "Plaza Garita de Lima - Calle Batalla de Tarapacá"
+      },
+      {
+        "latitude": -16.4958,
+        "longitude": -68.1389,
+        "descripcion": "Calle Chorolque - Calle Sebastián Segurola"
+      },
+      {
+        "latitude": -16.4981,
+        "longitude": -68.1375,
+        "descripcion": "Calle Eloy Salmón - Calle Pedro de la Gasca"
+      },
+      {
+        "latitude": -16.4995,
+        "longitude": -68.1368,
+        "descripcion": "Plaza Marcelo Quiroga Santa Cruz - Calle Max Paredes"
+      },
+      {
+        "latitude": -16.5012,
+        "longitude": -68.135,
+        "descripcion": "Calle Zoilo Flores - Calle Héroes del Acre"
+      },
+      {
+        "latitude": -16.503,
+        "longitude": -68.1332,
+        "descripcion": "Calle Otero de la Vega - Calle México"
+      },
+      {
+        "latitude": -16.5048,
+        "longitude": -68.1298,
+        "descripcion": "Plaza del Estudiante - Av. Villazón"
+      },
+      {
+        "latitude": -16.5082,
+        "longitude": -68.1265,
+        "descripcion": "Av. 6 de Agosto - Calle Macario Pinilla"
+      },
+      {
+        "latitude": -16.5105,
+        "longitude": -68.1248,
+        "descripcion": "Calle Sánchez Lima - Calle Bernardino Bilbao Rioja"
+      },
+      {
+        "latitude": -16.5165,
+        "longitude": -68.118,
+        "descripcion": "Av. Kantutani - Calle Héctor Ormachea"
+      },
+      {
+        "latitude": -16.5201,
+        "longitude": -68.112,
+        "descripcion": "Calle 5 de Obrajes - Av. Hernando Siles"
+      },
+      {
+        "latitude": -16.5255,
+        "longitude": -68.1062,
+        "descripcion": "Av. Roma - Av. José Ballivián"
+      },
+      {
+        "latitude": -16.5395,
+        "longitude": -68.085,
+        "descripcion": "Calle 23 de Calacoto - Calle García Lanza"
+      },
+      {
+        "latitude": -16.5281,
+        "longitude": -68.072,
+        "descripcion": "Calle 22 de Achumani - Av. Costanera"
+      },
+      {
+        "latitude": -16.5235,
+        "longitude": -68.0665,
+        "descripcion": "Calle 16 - Av. Julio Méndez"
+      },
+      {
+        "latitude": -16.5188,
+        "longitude": -68.0598,
+        "descripcion": "Calle 12 - Calle 3"
+      },
+      {
+        "latitude": -16.5152,
+        "longitude": -68.0545,
+        "descripcion": "Av. Eduardo Avaroa - Av. Principal esq. Calle 9"
+      }
+    ],
+    "vuelta": [
+      {
+        "latitude": -16.5152,
+        "longitude": -68.0545,
+        "descripcion": "Av. Principal esq. Calle 9 - Av. Eduardo Avaroa"
+      },
+      {
+        "latitude": -16.5188,
+        "longitude": -68.0598,
+        "descripcion": "Calle 3 - Calle 12"
+      },
+      {
+        "latitude": -16.5235,
+        "longitude": -68.0665,
+        "descripcion": "Av. Julio Méndez - Calle 16"
+      },
+      {
+        "latitude": -16.5281,
+        "longitude": -68.072,
+        "descripcion": "Av. Costanera - Calle 22 de Achumani"
+      },
+      {
+        "latitude": -16.5332,
+        "longitude": -68.0781,
+        "descripcion": "Av. Gral. García Lanza - Calle José Gabino Villanueva"
+      },
+      {
+        "latitude": -16.5395,
+        "longitude": -68.085,
+        "descripcion": "Calle 22 de Calacoto - Av. Gral. José Ballivián"
+      },
+      {
+        "latitude": -16.5255,
+        "longitude": -68.1062,
+        "descripcion": "Av. Roma - Av. Hernando Siles"
+      },
+      {
+        "latitude": -16.518,
+        "longitude": -68.1135,
+        "descripcion": "Calle 11 de Obrajes - Av. Héctor Ormachea"
+      },
+      {
+        "latitude": -16.5125,
+        "longitude": -68.121,
+        "descripcion": "Av. Kantutani - Calle Romecin Campos"
+      },
+      {
+        "latitude": -16.507,
+        "longitude": -68.1278,
+        "descripcion": "Av. 20 de Octubre - Calle Nicolás Acosta"
+      },
+      {
+        "latitude": -16.5012,
+        "longitude": -68.135,
+        "descripcion": "Calle Zoilo Flores - Calle Max Paredes"
+      },
+      {
+        "latitude": -16.4995,
+        "longitude": -68.1368,
+        "descripcion": "Plaza Marcelo Quiroga Santa Cruz"
+      },
+      {
+        "latitude": -16.4935,
+        "longitude": -68.1401,
+        "descripcion": "Plaza Garita de Lima - Av. Mariano Baptista"
+      },
+      {
+        "latitude": -16.491,
+        "longitude": -68.1412,
+        "descripcion": "Cementerio General - Av. Kollasuyo"
+      },
+      {
+        "latitude": -16.485,
+        "longitude": -68.145,
+        "descripcion": "Calle 26 de Mayo - Av. Alcides Arguedas"
+      },
+      {
+        "latitude": -16.4812,
+        "longitude": -68.1485,
+        "descripcion": "Calle Alcides Arguedas esq. Guadalquivir"
+      }
+    ]
+  },
+  {
+    "linea": "263",
+    "grupo": "Grupo F",
+    "nombre": "Línea 263 - Villa San Francisco / Los Rosales",
+    "ida": [
+      {
+        "latitude": -16.481,
+        "longitude": -68.159,
+        "descripcion": "Calle B esq. Calle Arguedas de Villa San Francisco"
+      },
+      {
+        "latitude": -16.4828,
+        "longitude": -68.1565,
+        "descripcion": "Calle Las Lomas - Av. Julio Mantilla (Kiswara 1)"
+      },
+      {
+        "latitude": -16.4845,
+        "longitude": -68.1542,
+        "descripcion": "Prolongación Girasoles - Calle Los Pinos"
+      },
+      {
+        "latitude": -16.4855,
+        "longitude": -68.1522,
+        "descripcion": "Av. Primavera - Calle 3 de Ciudadela Ferroviaria"
+      },
+      {
+        "latitude": -16.4912,
+        "longitude": -68.1458,
+        "descripcion": "Av. Manuel Gamarra - Calle Coro Coro"
+      },
+      {
+        "latitude": -16.495,
+        "longitude": -68.1411,
+        "descripcion": "Av. Ismael Vásquez - Av. Manco Kapac"
+      },
+      {
+        "latitude": -16.4952,
+        "longitude": -68.136,
+        "descripcion": "Plaza Eduardo Urquieta - Av. Ildefonzo de las Muñecas"
+      },
+      {
+        "latitude": -16.4965,
+        "longitude": -68.1378,
+        "descripcion": "Calle Pucarani - Av. Manco Kapac"
+      },
+      {
+        "latitude": -16.498,
+        "longitude": -68.1385,
+        "descripcion": "Plaza Juariste Eguino - Calle Illampu"
+      },
+      {
+        "latitude": -16.4998,
+        "longitude": -68.1362,
+        "descripcion": "Calle Gral. Gonzales - Calle Antonio Paredes Candia"
+      },
+      {
+        "latitude": -16.502,
+        "longitude": -68.134,
+        "descripcion": "Calle Murillo - Calle México"
+      },
+      {
+        "latitude": -16.5048,
+        "longitude": -68.1298,
+        "descripcion": "Plaza del Estudiante - Av. Villazón"
+      },
+      {
+        "latitude": -16.5082,
+        "longitude": -68.1265,
+        "descripcion": "Av. 6 de Agosto - Calle Macario Pinilla"
+      },
+      {
+        "latitude": -16.5105,
+        "longitude": -68.1248,
+        "descripcion": "Calle Sánchez Lima - Calle Bernardino Bilbao Rioja"
+      },
+      {
+        "latitude": -16.5165,
+        "longitude": -68.118,
+        "descripcion": "Av. Kantutani - Calle Héctor Ormachea"
+      },
+      {
+        "latitude": -16.5201,
+        "longitude": -68.112,
+        "descripcion": "Calle 5 de Obrajes - Av. Hernando Siles"
+      },
+      {
+        "latitude": -16.5255,
+        "longitude": -68.1062,
+        "descripcion": "Av. Roma - Av. José Ballivián"
+      },
+      {
+        "latitude": -16.5395,
+        "longitude": -68.085,
+        "descripcion": "Calle 23 de Calacoto - Av. Gral. García Lanza"
+      },
+      {
+        "latitude": -16.5281,
+        "longitude": -68.072,
+        "descripcion": "Calle 22 de Achumani - Av. The Strongest"
+      },
+      {
+        "latitude": -16.524,
+        "longitude": -68.065,
+        "descripcion": "Av. de Las Madres - Calle Eusebio Méndez"
+      },
+      {
+        "latitude": -16.52,
+        "longitude": -68.058,
+        "descripcion": "Calle 8 de Diciembre - Calle A"
+      },
+      {
+        "latitude": -16.516,
+        "longitude": -68.0525,
+        "descripcion": "Calle A esq. Calle E de la Zona Los Rosales"
+      }
+    ],
+    "vuelta": [
+      {
+        "latitude": -16.516,
+        "longitude": -68.0525,
+        "descripcion": "Calle A esq. Calle E de la Zona Los Rosales"
+      },
+      {
+        "latitude": -16.52,
+        "longitude": -68.058,
+        "descripcion": "Calle 8 de Diciembre - Calle Eustaquio Méndez"
+      },
+      {
+        "latitude": -16.524,
+        "longitude": -68.065,
+        "descripcion": "Av. de Las Madres - Av. The Strongest"
+      },
+      {
+        "latitude": -16.5281,
+        "longitude": -68.072,
+        "descripcion": "Calle 22 de Achumani - Av. Gral. Manuel Víctor García Lanza"
+      },
+      {
+        "latitude": -16.5332,
+        "longitude": -68.0781,
+        "descripcion": "Calle José Gabino Villanueva - Calle 22 de Calacoto"
+      },
+      {
+        "latitude": -16.5388,
+        "longitude": -68.0872,
+        "descripcion": "Av. José Ballivián - Av. Roma"
+      },
+      {
+        "latitude": -16.5255,
+        "longitude": -68.1062,
+        "descripcion": "Av. Hernando Siles - Av. del Libertador"
+      },
+      {
+        "latitude": -16.5085,
+        "longitude": -68.1252,
+        "descripcion": "Av. Aniceto Arce - Plaza Isabel La Católica"
+      },
+      {
+        "latitude": -16.5048,
+        "longitude": -68.1298,
+        "descripcion": "Av. Villazón - Plaza del Estudiante"
+      },
+      {
+        "latitude": -16.5032,
+        "longitude": -68.1325,
+        "descripcion": "Calle Cañada Strongest - Plaza Antonio José de Sucre"
+      },
+      {
+        "latitude": -16.5015,
+        "longitude": -68.1345,
+        "descripcion": "Calle Almirante Grau - Calle Zoilo Flores"
+      },
+      {
+        "latitude": -16.4998,
+        "longitude": -68.1362,
+        "descripcion": "Calle General Gonzales - Calle Illampu"
+      },
+      {
+        "latitude": -16.498,
+        "longitude": -68.1385,
+        "descripcion": "Plaza Eguino - Av. Manco Kapac"
+      },
+      {
+        "latitude": -16.4952,
+        "longitude": -68.136,
+        "descripcion": "Plaza Eduardo Urquieta - Av. Manco Kapac"
+      },
+      {
+        "latitude": -16.495,
+        "longitude": -68.1411,
+        "descripcion": "Av. Ismael Vásquez - Calle Coro Coro"
+      },
+      {
+        "latitude": -16.4912,
+        "longitude": -68.1458,
+        "descripcion": "Calle Manuel Gamarra - Calle 3"
+      },
+      {
+        "latitude": -16.4855,
+        "longitude": -68.1522,
+        "descripcion": "Av. Primavera - Calle Los Pinos"
+      },
+      {
+        "latitude": -16.4845,
+        "longitude": -68.1542,
+        "descripcion": "Prolongación Girasoles - Av. Julio Mantilla"
+      },
+      {
+        "latitude": -16.4828,
+        "longitude": -68.1565,
+        "descripcion": "Calle Las Lomas - Villa San Francisco"
+      },
+      {
+        "latitude": -16.481,
+        "longitude": -68.159,
+        "descripcion": "Calle B esq. Calle Arguedas de Villa San Francisco"
+      }
+    ]
+  },
+  {
+    "linea": "340",
+    "grupo": "Grupo I",
+    "nombre": "Línea 340 - Ciudadela Ferroviaria / Achumani 23 de Marzo",
+    "ida": [
+      {
+        "latitude": -16.4821,
+        "longitude": -68.156,
+        "descripcion": "Calle A esq. Calle G y F"
+      },
+      {
+        "latitude": -16.4855,
+        "longitude": -68.1522,
+        "descripcion": "Av. Primavera - Ciudadela Ferroviaria"
+      },
+      {
+        "latitude": -16.4912,
+        "longitude": -68.1458,
+        "descripcion": "Av. Manuel Gamarra"
+      },
+      {
+        "latitude": -16.495,
+        "longitude": -68.1411,
+        "descripcion": "Calle Coro Coro - Av. Ismael Vásquez"
+      },
+      {
+        "latitude": -16.4968,
+        "longitude": -68.1385,
+        "descripcion": "Av. Manco Kapac"
+      },
+      {
+        "latitude": -16.4952,
+        "longitude": -68.136,
+        "descripcion": "Plaza Eduardo Urquieta / Av. Ildefonzo de las Muñecas"
+      },
+      {
+        "latitude": -16.4938,
+        "longitude": -68.1368,
+        "descripcion": "Calle Bozo - Av. Ismael Montes"
+      },
+      {
+        "latitude": -16.4975,
+        "longitude": -68.1353,
+        "descripcion": "Plaza Pérez Velasco"
+      },
+      {
+        "latitude": -16.5003,
+        "longitude": -68.1331,
+        "descripcion": "Av. Mariscal Santa Cruz - Av. 16 de Julio (El Prado)"
+      },
+      {
+        "latitude": -16.5048,
+        "longitude": -68.1298,
+        "descripcion": "Plaza del Estudiante - Av. Villazón"
+      },
+      {
+        "latitude": -16.5082,
+        "longitude": -68.1265,
+        "descripcion": "Av. 6 de Agosto"
+      },
+      {
+        "latitude": -16.514,
+        "longitude": -68.1189,
+        "descripcion": "Av. del Libertador - Av. Hernando Siles"
+      },
+      {
+        "latitude": -16.5255,
+        "longitude": -68.1062,
+        "descripcion": "Obrajes - Av. Roma"
+      },
+      {
+        "latitude": -16.5388,
+        "longitude": -68.0872,
+        "descripcion": "Calacoto - Av. José Ballivián"
+      },
+      {
+        "latitude": -16.5395,
+        "longitude": -68.085,
+        "descripcion": "Calle 23 de Calacoto"
+      },
+      {
+        "latitude": -16.5332,
+        "longitude": -68.0781,
+        "descripcion": "Achumani - Av. Gral. García Lanza"
+      },
+      {
+        "latitude": -16.5281,
+        "longitude": -68.072,
+        "descripcion": "Calle 22 de Achumani - Av. Costanerita"
+      },
+      {
+        "latitude": -16.5235,
+        "longitude": -68.0665,
+        "descripcion": "Av. Julio Mendez / Meseta de Achumani"
+      },
+      {
+        "latitude": -16.519,
+        "longitude": -68.0601,
+        "descripcion": "Av. Eduardo Avaroa - Zona 23 de Marzo Calle 6"
+      }
+    ],
+    "vuelta": [
+      {
+        "latitude": -16.519,
+        "longitude": -68.0601,
+        "descripcion": "Zona 23 de Marzo - Av. Principal"
+      },
+      {
+        "latitude": -16.5235,
+        "longitude": -68.0665,
+        "descripcion": "Av. Julio Mendez - Calle 16 Achumani"
+      },
+      {
+        "latitude": -16.5281,
+        "longitude": -68.072,
+        "descripcion": "Calle 22 de Achumani"
+      },
+      {
+        "latitude": -16.5332,
+        "longitude": -68.0781,
+        "descripcion": "Av. Gral. García Lanza"
+      },
+      {
+        "latitude": -16.5395,
+        "longitude": -68.085,
+        "descripcion": "Calle 22 de Calacoto"
+      },
+      {
+        "latitude": -16.5388,
+        "longitude": -68.0872,
+        "descripcion": "Av. José Ballivián"
+      },
+      {
+        "latitude": -16.5255,
+        "longitude": -68.1062,
+        "descripcion": "Av. Roma - Obrajes"
+      },
+      {
+        "latitude": -16.514,
+        "longitude": -68.1189,
+        "descripcion": "Av. del Libertador"
+      },
+      {
+        "latitude": -16.5085,
+        "longitude": -68.1252,
+        "descripcion": "Av. Aniceto Arce - Plaza Isabel La Católica"
+      },
+      {
+        "latitude": -16.5048,
+        "longitude": -68.1298,
+        "descripcion": "Av. Villazón - Plaza del Estudiante"
+      },
+      {
+        "latitude": -16.5003,
+        "longitude": -68.1331,
+        "descripcion": "Av. 16 de Julio - Av. Mariscal Santa Cruz"
+      },
+      {
+        "latitude": -16.4975,
+        "longitude": -68.1353,
+        "descripcion": "Plaza Pérez Velasco - Av. Ismael Montes"
+      },
+      {
+        "latitude": -16.4938,
+        "longitude": -68.1368,
+        "descripcion": "Calle José Manuel Pando - Av. Ildefonzo de las Muñecas"
+      },
+      {
+        "latitude": -16.4952,
+        "longitude": -68.136,
+        "descripcion": "Plaza Eduardo Urquieta - Av. Manco Kapac"
+      },
+      {
+        "latitude": -16.495,
+        "longitude": -68.1411,
+        "descripcion": "Av. Ismael Vásquez - Calle Coro Coro"
+      },
+      {
+        "latitude": -16.4912,
+        "longitude": -68.1458,
+        "descripcion": "Av. Manuel Gamarra"
+      },
+      {
+        "latitude": -16.4855,
+        "longitude": -68.1522,
+        "descripcion": "Av. Primavera"
+      },
+      {
+        "latitude": -16.4821,
+        "longitude": -68.156,
+        "descripcion": "Calle A entre Calle G y F"
+      }
+    ]
+  },
+  {
+    "linea": "959",
+    "grupo": "Grupo K",
+    "nombre": "Línea 959 - Central San Pedro / Urb. Tres Fuerzas",
+    "ida": [
+      {
+        "latitude": -16.4802,
+        "longitude": -68.1581,
+        "descripcion": "Av. Central San Pedro esq. Av. Primavera"
+      },
+      {
+        "latitude": -16.4855,
+        "longitude": -68.1522,
+        "descripcion": "Av. Primavera - Ciudadela Ferroviaria"
+      },
+      {
+        "latitude": -16.4912,
+        "longitude": -68.1458,
+        "descripcion": "Av. Manuel Gamarra"
+      },
+      {
+        "latitude": -16.495,
+        "longitude": -68.1411,
+        "descripcion": "Calle Coro Coro - Av. Ismael Vásquez"
+      },
+      {
+        "latitude": -16.4968,
+        "longitude": -68.1385,
+        "descripcion": "Av. Manco Kapac"
+      },
+      {
+        "latitude": -16.4952,
+        "longitude": -68.136,
+        "descripcion": "Plaza Eduardo Urquieta / Av. Ildefonzo de las Muñecas"
+      },
+      {
+        "latitude": -16.4941,
+        "longitude": -68.137,
+        "descripcion": "Plaza Alonzo de Mendoza - Calle Bozo"
+      },
+      {
+        "latitude": -16.4975,
+        "longitude": -68.1353,
+        "descripcion": "Av. Ismael Montes - Plaza Pérez Velasco"
+      },
+      {
+        "latitude": -16.5003,
+        "longitude": -68.1331,
+        "descripcion": "Av. Mariscal Santa Cruz - El Prado"
+      },
+      {
+        "latitude": -16.5048,
+        "longitude": -68.1298,
+        "descripcion": "Plaza del Estudiante - Av. Villazón"
+      },
+      {
+        "latitude": -16.5082,
+        "longitude": -68.1265,
+        "descripcion": "Av. 6 de Agosto - Calle Macario Pinilla"
+      },
+      {
+        "latitude": -16.5105,
+        "longitude": -68.1248,
+        "descripcion": "Calle Sánchez Lima - Calle Bernardino Bilbao Rioja"
+      },
+      {
+        "latitude": -16.5165,
+        "longitude": -68.118,
+        "descripcion": "Av. Kantutani - Calle Héctor Ormachea"
+      },
+      {
+        "latitude": -16.5201,
+        "longitude": -68.112,
+        "descripcion": "Calle 5 de Obrajes - Av. Hernando Siles"
+      },
+      {
+        "latitude": -16.5255,
+        "longitude": -68.1062,
+        "descripcion": "Av. Roma - Av. José Ballivián"
+      },
+      {
+        "latitude": -16.5395,
+        "longitude": -68.085,
+        "descripcion": "Calle 23 de Calacoto - Av. Gral. García Lanza"
+      },
+      {
+        "latitude": -16.5281,
+        "longitude": -68.072,
+        "descripcion": "Calle 22 de Achumani - Av. Enrique Hertzog"
+      },
+      {
+        "latitude": -16.521,
+        "longitude": -68.064,
+        "descripcion": "Av. Julio Mendez - Calle 13 / Calle 3"
+      },
+      {
+        "latitude": -16.516,
+        "longitude": -68.0575,
+        "descripcion": "Calle Eduardo Avaroa - Calle Héroes del Pacífico"
+      },
+      {
+        "latitude": -16.512,
+        "longitude": -68.052,
+        "descripcion": "Urb. Tres Fuerzas - Calle S/N"
+      }
+    ],
+    "vuelta": [
+      {
+        "latitude": -16.512,
+        "longitude": -68.052,
+        "descripcion": "Urb. Tres Fuerzas - Calle Héroes del Pacífico"
+      },
+      {
+        "latitude": -16.516,
+        "longitude": -68.0575,
+        "descripcion": "Calle Eduardo Avaroa - Calle 13"
+      },
+      {
+        "latitude": -16.521,
+        "longitude": -68.064,
+        "descripcion": "Av. Julio Mendez - Av. Enrique Hertzog"
+      },
+      {
+        "latitude": -16.5281,
+        "longitude": -68.072,
+        "descripcion": "Calle 22 de Achumani - Av. Gral. García Lanza"
+      },
+      {
+        "latitude": -16.534,
+        "longitude": -68.079,
+        "descripcion": "Calle José Gabino Villanueva - Calle 22 Calacoto"
+      },
+      {
+        "latitude": -16.5388,
+        "longitude": -68.0872,
+        "descripcion": "Av. José Ballivián - Av. Roma"
+      },
+      {
+        "latitude": -16.5255,
+        "longitude": -68.1062,
+        "descripcion": "Av. Hernando Siles - Av. del Libertador"
+      },
+      {
+        "latitude": -16.5085,
+        "longitude": -68.1252,
+        "descripcion": "Av. Aniceto Arce - Plaza Isabel La Católica"
+      },
+      {
+        "latitude": -16.5048,
+        "longitude": -68.1298,
+        "descripcion": "Av. Villazón - Plaza del Estudiante"
+      },
+      {
+        "latitude": -16.5003,
+        "longitude": -68.1331,
+        "descripcion": "Av. 16 de Julio - Av. Mariscal Santa Cruz"
+      },
+      {
+        "latitude": -16.4975,
+        "longitude": -68.1353,
+        "descripcion": "Plaza Pérez Velasco - Av. Ismael Montes"
+      },
+      {
+        "latitude": -16.4938,
+        "longitude": -68.1368,
+        "descripcion": "Calle José Manuel Pando - Av. Ildefonzo de las Muñecas"
+      },
+      {
+        "latitude": -16.4952,
+        "longitude": -68.136,
+        "descripcion": "Plaza Eduardo Urquieta - Av. Manco Kapac"
+      },
+      {
+        "latitude": -16.495,
+        "longitude": -68.1411,
+        "descripcion": "Av. Ismael Vásquez - Calle Coro Coro"
+      },
+      {
+        "latitude": -16.4912,
+        "longitude": -68.1458,
+        "descripcion": "Av. Manuel Gamarra"
+      },
+      {
+        "latitude": -16.4855,
+        "longitude": -68.1522,
+        "descripcion": "Av. Primavera - Ciudadela Ferroviaria"
+      },
+      {
+        "latitude": -16.4802,
+        "longitude": -68.1581,
+        "descripcion": "Av. Central San Pedro esq. Av. Primavera"
+      }
+    ]
+  }
+]

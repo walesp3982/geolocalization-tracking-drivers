@@ -41,5 +41,6 @@ example
 # generated native folders
 /ios
 /android
-
+node_modules/
+application/node_modules/
 .env
