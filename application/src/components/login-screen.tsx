@@ -1,150 +1,90 @@
 import { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import { Button, StyleSheet, Text, TextInput, View } from "react-native";
 
-type Rol = "chofer" | "admin";
+// Credenciales de ejemplo (hardcodeadas por ahora, sin backend todavía)
+const CREDENCIALES_VALIDAS = {
+  usuario: "chofer",
+  contrasena: "1234",
+};
 
 interface LoginScreenProps {
-  onLoginExitoso: (rol: Rol) => void;
+  onLoginExitoso: () => void;
 }
-
-// Credenciales de demo (hardcodeadas, como ya tenían para "chofer").
-// TODO: cuando el backend tenga /auth real, reemplazar esta validación
-// por una llamada al endpoint de login.
-const CREDENCIALES: Record<string, { password: string; rol: Rol }> = {
-  chofer: { password: "1234", rol: "chofer" },
-  admin: { password: "admin123", rol: "admin" },
-};
 
 export default function LoginScreen({ onLoginExitoso }: LoginScreenProps) {
   const [usuario, setUsuario] = useState("");
-  const [password, setPassword] = useState("");
+  const [contrasena, setContrasena] = useState("");
+  const [error, setError] = useState("");
 
-  const handleIngresar = () => {
-    const credencial = CREDENCIALES[usuario.trim().toLowerCase()];
-
-    if (credencial && credencial.password === password) {
-      onLoginExitoso(credencial.rol);
+  function manejarLogin() {
+    if (
+      usuario === CREDENCIALES_VALIDAS.usuario &&
+      contrasena === CREDENCIALES_VALIDAS.contrasena
+    ) {
+      setError("");
+      onLoginExitoso();
     } else {
-      Alert.alert("Error", "Usuario o contraseña incorrectos");
+      setError("Usuario o contraseña incorrectos");
     }
-  };
+  }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <View style={styles.container}>
-        <View style={styles.avatar} />
+    <View style={styles.container}>
+      <Text style={styles.titulo}>Iniciar sesión</Text>
 
-        <TouchableOpacity style={styles.gearButton} onPress={() => {}}>
-          <Text style={styles.gearIcon}>⚙️</Text>
-        </TouchableOpacity>
+      <TextInput
+        style={styles.input}
+        placeholder="Usuario"
+        autoCapitalize="none"
+        value={usuario}
+        onChangeText={setUsuario}
+      />
 
-        <View style={styles.form}>
-          <Text style={styles.title}>Iniciar sesión</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Contraseña"
+        secureTextEntry
+        value={contrasena}
+        onChangeText={setContrasena}
+      />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Usuario"
-            placeholderTextColor="#9ca3af"
-            value={usuario}
-            onChangeText={setUsuario}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
+      {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          <TextInput
-            style={styles.input}
-            placeholder="Contraseña"
-            placeholderTextColor="#9ca3af"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoCapitalize="none"
-          />
+      <Button title="Ingresar" onPress={manejarLogin} />
 
-          <TouchableOpacity style={styles.button} onPress={handleIngresar}>
-            <Text style={styles.buttonText}>INGRESAR</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.demoText}>
-            (Demo: usuario "chofer" / contraseña "1234"{"\n"}
-            o usuario "admin" / contraseña "admin123")
-          </Text>
-        </View>
-      </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-    paddingTop: 24,
-    paddingHorizontal: 24,
-  },
-  avatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#111827",
-    alignSelf: "center",
-  },
-  gearButton: {
-    position: "absolute",
-    top: 60,
-    right: 24,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#e5e7eb",
     justifyContent: "center",
-    alignItems: "center",
+    padding: 24,
+    gap: 12,
+    backgroundColor: "#fff",
   },
-  gearIcon: { fontSize: 18 },
-  form: {
-    marginTop: 180,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: "700",
+  titulo: {
+    fontSize: 24,
+    fontWeight: "bold",
     textAlign: "center",
-    marginBottom: 28,
+    marginBottom: 12,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: "#ccc",
     borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    marginBottom: 14,
+    padding: 12,
+    fontSize: 16,
   },
-  button: {
-    backgroundColor: "#2563eb",
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 4,
-  },
-  buttonText: { color: "#fff", fontWeight: "700", fontSize: 14, letterSpacing: 0.5 },
-  demoText: {
+  error: {
+    color: "red",
     textAlign: "center",
-    color: "#9ca3af",
-    fontSize: 12,
+  },
+  ayuda: {
     marginTop: 12,
-    lineHeight: 18,
+    textAlign: "center",
+    color: "#888",
+    fontSize: 12,
   },
 });
