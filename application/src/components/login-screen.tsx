@@ -1,13 +1,13 @@
 import { useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
   Alert,
   KeyboardAvoidingView,
   Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 type Rol = "chofer" | "admin";
@@ -44,8 +44,6 @@ export default function LoginScreen({ onLoginExitoso }: LoginScreenProps) {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={styles.container}>
-        <View style={styles.avatar} />
-
         <TouchableOpacity style={styles.gearButton} onPress={() => {}}>
           <Text style={styles.gearIcon}>⚙️</Text>
         </TouchableOpacity>
@@ -78,8 +76,8 @@ export default function LoginScreen({ onLoginExitoso }: LoginScreenProps) {
           </TouchableOpacity>
 
           <Text style={styles.demoText}>
-            (Demo: usuario "chofer" / contraseña "1234"{"\n"}
-            o usuario "admin" / contraseña "admin123")
+            (Demo: usuario "chofer" / contraseña "1234"{"\n"}o usuario "admin" /
+            contraseña "admin123")
           </Text>
         </View>
       </View>
@@ -94,13 +92,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     paddingTop: 24,
     paddingHorizontal: 24,
-  },
-  avatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#111827",
-    alignSelf: "center",
   },
   gearButton: {
     position: "absolute",
@@ -139,7 +130,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 4,
   },
-  buttonText: { color: "#fff", fontWeight: "700", fontSize: 14, letterSpacing: 0.5 },
+  buttonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 14,
+    letterSpacing: 0.5,
+  },
   demoText: {
     textAlign: "center",
     color: "#9ca3af",
