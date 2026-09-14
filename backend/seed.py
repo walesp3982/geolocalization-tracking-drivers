@@ -2,6 +2,7 @@ import asyncio
 import logging
 import random
 import string
+import uuid
 
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -124,6 +125,7 @@ async def saved_conductor(
         nombre=conductor.name,
         password=hash_password(conductor.password),
         telefono=conductor.telefono,
+        idem_key=uuid.uuid4(),
     )
 
     session.add(c)
