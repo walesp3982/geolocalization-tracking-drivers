@@ -1,15 +1,21 @@
 import asyncio
+import json
 import logging
 import random
 import string
 import uuid
+from pathlib import Path
+from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from shapely import to_wkt
+from shapely.geometry import Point
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from src.database import Administrator, Conductor, GrupoOperativo
+from src.database import Administrator, Conductor, GrupoOperativo, PuntosControl, Ruta
 from src.jwt.security import hash_password
 from src.setting import DATABASE_URL
 
@@ -71,10 +77,34 @@ class CreateConductor(BaseModel):
     activo: bool = True
 
 
+class CreatePointRouter(BaseModel):
+    radio: float = Field(gt=0)
+    ubication: str
+
+
+class CreateRoute(BaseModel):
+    number_route: str
+    lugar_inicial: str
+    lugar_final: str
+    tiempo_estimado: int
+    line: dict[str, Any]
+    points: list[CreatePointRouter] = []
+
+
 class CreateGruposOperativo(BaseModel):
     nombre_grupo: str
     representante: CreateConductor | None = None
     choferes: list[CreateConductor] = []
+    rutas: list[CreateRoute] = []
+
+
+FATHER_PATH = Path(__file__).resolve().parent
+FOLDER_ROUTER = FATHER_PATH / "routes"
+
+
+def loads_data(path: str) -> dict[str, Any]:
+    with open(path, "r", encoding="utf-8") as file:
+        return json.load(file)
 
 
 GRUPOS_OPERATIVOS: list[CreateGruposOperativo] = [
@@ -95,6 +125,62 @@ GRUPOS_OPERATIVOS: list[CreateGruposOperativo] = [
                 password="password",
                 telefono="3883483",
                 activo=False,
+            ),
+        ],
+        rutas=[
+            CreateRoute(
+                lugar_inicial="Universidad Salesiana de Bolivia",
+                lugar_final="Teleférico Amarillo",
+                tiempo_estimado=45,
+                number_route="CH",
+                line=loads_data(str(FOLDER_ROUTER / "test.geojson")),
+                points=[
+                    CreatePointRouter(
+                        ubication=to_wkt(Point(-68.1498714, -16.4778718)), radio=50
+                    ),
+                    CreatePointRouter(
+                        ubication=to_wkt(Point(-68.1445853, -16.4887826)), radio=50
+                    ),
+                    CreatePointRouter(
+                        ubication=to_wkt(Point(-68.1442078, -16.4936934)), radio=50
+                    ),
+                    CreatePointRouter(
+                        ubication=to_wkt(Point(-68.1444671, -16.4988971)), radio=50
+                    ),
+                    CreatePointRouter(
+                        ubication=to_wkt(Point(-68.1427762, -16.5072862)), radio=50
+                    ),
+                    CreatePointRouter(
+                        ubication=to_wkt(Point(-68.1436114, -16.5151328)), radio=50
+                    ),
+                ],
+            ),
+            CreateRoute(
+                lugar_inicial="Teleférico Amarillo",
+                lugar_final="Universidad Salesiana de Bolivia",
+                tiempo_estimado=45,
+                number_route="CH",
+                line=loads_data(str(FOLDER_ROUTER / "test.geojson")),
+                points=[
+                    CreatePointRouter(
+                        ubication=to_wkt(Point(-68.1436114, -16.5151328)), radio=50
+                    ),
+                    CreatePointRouter(
+                        ubication=to_wkt(Point(-68.1427762, -16.5072862)), radio=50
+                    ),
+                    CreatePointRouter(
+                        ubication=to_wkt(Point(-68.1444671, -16.4988971)), radio=50
+                    ),
+                    CreatePointRouter(
+                        ubication=to_wkt(Point(-68.1442078, -16.4936934)), radio=50
+                    ),
+                    CreatePointRouter(
+                        ubication=to_wkt(Point(-68.1445853, -16.4887826)), radio=50
+                    ),
+                    CreatePointRouter(
+                        ubication=to_wkt(Point(-68.1498714, -16.4778718)), radio=50
+                    ),
+                ],
             ),
         ],
     ),
@@ -137,6 +223,49 @@ async def saved_conductor(
     return c.id_grupo
 
 
+async def create_points_by_group(
+    session: AsyncSession, points: list[CreatePointRouter], id_ruta: int
+) -> None:
+    for i, point in enumerate(points):
+        saving_point = PuntosControl(
+            radio=point.radio,
+            n_puntos_relativo=i + 1,
+            ubication=point.ubication,
+            id_ruta=id_ruta,
+        )
+        session.add(saving_point)
+        logger.info(f" - Adding point #{i + 1} for route {id_ruta} ")
+    await session.commit()
+    logger.info(f"Finished points control for route {id_ruta}")
+
+
+async def create_route_by_group(
+    session: AsyncSession, input_data: CreateRoute, group_id: int
+) -> None:
+    try:
+        route = Ruta(
+            id_grupo_operativo=group_id,
+            line=input_data.line,
+            lugar_final=input_data.lugar_final,
+            lugar_inicial=input_data.lugar_inicial,
+            numero_ruta=input_data.number_route,
+            tiempo_estimado=input_data.tiempo_estimado,
+        )
+
+        session.add(route)
+        await session.commit()
+
+        await session.refresh(route)
+        logger.info(
+            f"Creating router: [{route.lugar_inicial} - {route.lugar_final}] with id {route.id_ruta}"
+        )
+        await create_points_by_group(session, input_data.points, route.id_ruta)
+    except IntegrityError as e:
+        logger.error(f"Error in creating router {e}")
+    except SQLAlchemyError as e:
+        logger.error(f"Error unexpected: {e}")
+
+
 async def create_operatives_groups(
     session: AsyncSession, grupos: list[CreateGruposOperativo]
 ) -> None:
@@ -172,6 +301,9 @@ async def create_operatives_groups(
             await session.commit()
 
             logger.info("Updating representante in saved_group")
+
+        for r in grupo.rutas:
+            await create_route_by_group(session, r, saved_group.id_grupo)
 
 
 async def main() -> None:
