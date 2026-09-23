@@ -1,8 +1,8 @@
+import DriverTracker from "@/components/DriverMap";
+import LoginScreen from "@/components/login-screen";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
-import LoginScreen from "@/components/login-screen";
-import DriverTracker from "@/components/DriverMap";
 
 export default function HomeScreen() {
   const [sesionIniciada, setSesionIniciada] = useState(false);
