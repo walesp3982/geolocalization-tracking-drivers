@@ -17,7 +17,7 @@ export default function HomeScreen() {
         provider={PROVIDER_GOOGLE}
         style={styles.map}
         initialRegion={{
-          latitude: -17.7833,
+          latitude: -17.7832,
           longitude: -63.1821,
           latitudeDelta: 0.05,
           longitudeDelta: 0.05,
