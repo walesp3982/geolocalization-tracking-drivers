@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from "react";
-import { ThemedView } from "@/components/themed-view";
 import LoginScreen from "@/components/login-screen";
+import { ThemedView } from "@/components/themed-view";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { iniciarRastreoUbicacion } from "@/services/locationService";
 import * as Location from "expo-location";
-import { Button, StyleSheet, ActivityIndicator, Text } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Button, StyleSheet, Text } from "react-native";
 import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
 // NUEVO: pantalla de panel de administración (tabla de grupos)
 import PanelAdminScreen from "./admin/grupos/index";
@@ -53,7 +53,9 @@ export default function HomeScreen() {
         }
 
         if (!(await Location.hasServicesEnabledAsync())) {
-          setErrorUbicacion("Activa la ubicación del dispositivo para continuar");
+          setErrorUbicacion(
+            "Activa la ubicación del dispositivo para continuar",
+          );
           return;
         }
 
