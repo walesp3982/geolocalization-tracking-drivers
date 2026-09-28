@@ -2,14 +2,7 @@ import * as Location from "expo-location";
 import { useEffect, useRef, useState } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-// Mock de datos de rutas temporal mientras el backend se integra
-const rutasData = [
-  { id: "1", linea: "Línea 1" },
-  { id: "2", linea: "Línea 2" },
-  { id: "3", linea: "Línea 3" },
-];
-
-export default function DriverTracker() {
+export default function DriverMap() {
   const [location, setLocation] = useState<Location.LocationObject | null>(
     null,
   );
@@ -17,9 +10,6 @@ export default function DriverTracker() {
   const [isTracking, setIsTracking] = useState<boolean>(false);
 
   // Estados para la selección de ruta y sentido
-  const [lineaSeleccionada, setLineaSeleccionada] = useState<any>(rutasData[0]);
-  const [esIda, setEsIda] = useState<boolean>(true);
-
   const locationSubscription = useRef<Location.LocationSubscription | null>(
     null,
   );
@@ -68,9 +58,6 @@ export default function DriverTracker() {
             newLocation.coords.latitude,
             newLocation.coords.longitude,
             "| Línea:",
-            lineaSeleccionada.linea,
-            "| Sentido:",
-            esIda ? "Ida" : "Vuelta",
           );
           if (isMounted.current) {
             setLocation(newLocation);
@@ -98,54 +85,6 @@ export default function DriverTracker() {
 
   return (
     <View style={styles.floatingCard}>
-      {/* Contenedor de Selección de Línea y Sentido */}
-      <View style={styles.routesContainer}>
-        <Text style={styles.sectionTitle}>Seleccionar Línea:</Text>
-        <View style={styles.lineChipsRow}>
-          {rutasData.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={[
-                styles.chipBtn,
-                lineaSeleccionada.id === item.id && styles.chipBtnActive,
-              ]}
-              onPress={() => setLineaSeleccionada(item)}
-            >
-              <Text
-                style={[
-                  styles.chipText,
-                  lineaSeleccionada.id === item.id && styles.chipTextActive,
-                ]}
-              >
-                {item.linea}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={styles.sentidoRow}>
-          <TouchableOpacity
-            style={[
-              styles.sentidoBtn,
-              esIda ? styles.btnIda : styles.btnInactive,
-            ]}
-            onPress={() => setEsIda(true)}
-          >
-            <Text style={styles.btnTextSentido}>Ida</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.sentidoBtn,
-              !esIda ? styles.btnVuelta : styles.btnInactive,
-            ]}
-            onPress={() => setEsIda(false)}
-          >
-            <Text style={styles.btnTextSentido}>Vuelta</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
       <View style={styles.divider} />
 
       {/* Estado del GPS */}

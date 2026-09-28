@@ -2,7 +2,12 @@ import { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 // Mock temporal de datos hasta que el backend envíe las rutas
-const rutasData = [
+
+interface Ruta {
+  id: string;
+  linea: string;
+}
+const rutasData: Ruta[] = [
   { id: "1", linea: "Línea 1" },
   { id: "2", linea: "Línea 2" },
   { id: "3", linea: "Línea 3" },
@@ -10,7 +15,9 @@ const rutasData = [
 
 export default function DriverTracker() {
   const [isTracking, setIsTracking] = useState<boolean>(false);
-  const [lineaSeleccionada, setLineaSeleccionada] = useState<any>(rutasData[0]);
+  const [lineaSeleccionada, setLineaSeleccionada] = useState<Ruta>(
+    rutasData[0],
+  );
   const [esIda, setEsIda] = useState<boolean>(true);
 
   const toggleTracking = () => {
