@@ -1,7 +1,4 @@
-import datetime
-import json
-
-from fastapi import APIRouter, WebSocket
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 router = APIRouter(
     tags=["Websocket"],
@@ -11,11 +8,9 @@ router = APIRouter(
 @router.websocket("/tracking")
 async def send_location(ws: WebSocket):
     await ws.accept()
-
-    while True:
-        data = await ws.receive_text()
-        location = json.loads(data)
-
-        print(
-            f"{location.latitude} : {location.longituted} : {location.timestamps} for mobile : {datetime.datetime.now(datetime.UTC)}"
-        )
+    try:
+        while True:
+            data = await ws.receive_text()
+            print(data)
+    except WebSocketDisconnect:
+        print("Websocket missing")

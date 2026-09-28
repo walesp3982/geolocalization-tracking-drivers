@@ -1,46 +1,57 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocationTracking } from "./use-location-tracking";
 import { useWebSocket } from "./use-websocket";
 
-const WS_APP = process.env.EXPO_PUBLIC_API_URL ?? "ws://10.0.2.2:8000";
+const WS_APP = process.env.EXPO_PUBLIC_WS_URL ?? "ws://10.0.2.2:8000";
 const WS_TRACKING = WS_APP + "/tracking";
 
 export default function useDriverTracking(): {
   location: import("./use-location-tracking").DeviceLocation | null;
   running: boolean;
   startTracking: () => void;
-  finishedTracking: () => void;
+  stopTracking: () => void;
   error: string | null;
 } {
-  let data = useLocationTracking();
+  let data = useLocationTracking({ timeInterval: 1000 });
   let ws = useWebSocket(WS_TRACKING);
-  let [error, setError] = useState<string | null>(null);
-  let [running, setRunning] = useState<boolean>(true);
+  const [isOpenning, setOpening] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const latestLocationRef = useRef(data.location);
 
   useEffect(() => {
-    if (running) {
-      if (ws.isConnected) {
-        data.isTracking! && data.startTracking();
-        if (data.error) {
-          console.log(data.error);
-        }
-        console.log("Sending data: ", data.location);
-        ws.sendMessage(data.location);
-      } else {
-        data.stopTracking();
-        setError("Unexpected error");
-        setRunning(false);
+    latestLocationRef.current = data.location;
+  }, [data.location]);
+
+  useEffect(() => {
+    if (!isOpenning || !ws.isConnected) return;
+
+    const intervalId = setInterval(() => {
+      const currentLocation = latestLocationRef.current;
+      if (currentLocation) {
+        console.log("Sending data ", currentLocation);
+        ws.sendMessage(currentLocation);
       }
-    } else {
-      data.stopTracking();
-    }
-  }, [running]);
+    }, 5000);
+
+    return () => clearInterval(intervalId);
+  }, [isOpenning, ws.isConnected, ws.sendMessage]);
+
+  const startTracking = () => {
+    setOpening(true);
+    ws.startWebSocket();
+    data.startTracking();
+  };
+
+  const stopTracking = () => {
+    setOpening(false);
+    ws.closeWebSocket();
+  };
 
   return {
     location: data.location,
-    running,
-    startTracking: () => setRunning(true),
-    finishedTracking: () => setRunning(false),
+    running: isOpenning,
+    startTracking: startTracking,
+    stopTracking: stopTracking,
     error,
   };
 }

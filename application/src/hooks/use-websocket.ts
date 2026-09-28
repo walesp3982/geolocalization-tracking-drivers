@@ -1,11 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 export function useWebSocket(url: string) {
   const socketRef = useRef<WebSocket | null>(null);
 
   const [isConnected, setIsConnected] = useState(false);
 
-  useEffect(() => {
+  const startWebSocket = useCallback(() => {
+    // Evitar crear otra conexión si ya existe
+    if (
+      socketRef.current &&
+      (socketRef.current.readyState === WebSocket.OPEN ||
+        socketRef.current.readyState === WebSocket.CONNECTING)
+    ) {
+      console.warn("WebSocket ya está conectado o conectándose");
+      return;
+    }
+
     const socket = new WebSocket(url);
 
     socketRef.current = socket;
@@ -26,13 +36,25 @@ export function useWebSocket(url: string) {
     socket.onclose = () => {
       console.log("WebSocket cerrado");
       setIsConnected(false);
-    };
 
-    return () => {
-      socket.close();
-      socketRef.current = null;
+      // Solo limpiar si este sigue siendo el socket actual
+      if (socketRef.current === socket) {
+        socketRef.current = null;
+      }
     };
   }, [url]);
+
+  const closeWebSocket = useCallback(() => {
+    const socket = socketRef.current;
+
+    if (!socket) {
+      return;
+    }
+
+    socket.close();
+    socketRef.current = null;
+    setIsConnected(false);
+  }, []);
 
   const sendMessage = useCallback((data: unknown) => {
     const socket = socketRef.current;
@@ -47,6 +69,8 @@ export function useWebSocket(url: string) {
 
   return {
     isConnected,
+    startWebSocket,
+    closeWebSocket,
     sendMessage,
   };
 }

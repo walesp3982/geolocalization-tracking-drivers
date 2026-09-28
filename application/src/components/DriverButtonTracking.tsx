@@ -1,13 +1,10 @@
+import useDriverTracking from "@/hooks/use-driver-tracking";
 import * as Location from "expo-location";
-import { useEffect, useRef, useState } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useRef } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function DriverMap() {
-  const [location, setLocation] = useState<Location.LocationObject | null>(
-    null,
-  );
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [isTracking, setIsTracking] = useState<boolean>(false);
+  const location = useDriverTracking();
 
   // Estados para la selección de ruta y sentido
   const locationSubscription = useRef<Location.LocationSubscription | null>(
@@ -25,75 +22,17 @@ export default function DriverMap() {
     };
   }, []);
 
-  const startTracking = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        if (isMounted.current) {
-          setErrorMsg("Permiso de ubicación denegado");
-        }
-        Alert.alert(
-          "Error",
-          "Se requiere permiso de ubicación para continuar.",
-        );
-        return;
-      }
-
-      if (isMounted.current) {
-        setErrorMsg(null);
-        setIsTracking(true);
-      }
-
-      console.log("📡 Iniciando rastreo de ubicación...");
-
-      locationSubscription.current = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.High,
-          timeInterval: 5000,
-          distanceInterval: 0,
-        },
-        (newLocation) => {
-          console.log(
-            "📍 Coordenadas (cada 5s):",
-            newLocation.coords.latitude,
-            newLocation.coords.longitude,
-            "| Línea:",
-          );
-          if (isMounted.current) {
-            setLocation(newLocation);
-          }
-        },
-      );
-    } catch (error) {
-      console.error("❌ Error al iniciar rastreo:", error);
-      if (isMounted.current) {
-        setErrorMsg("Error al activar el GPS");
-      }
-    }
-  };
-
-  const stopTracking = () => {
-    if (locationSubscription.current) {
-      locationSubscription.current.remove();
-      locationSubscription.current = null;
-    }
-    if (isMounted.current) {
-      setIsTracking(false);
-    }
-    console.log("🛑 Rastreo detenido");
-  };
-
   return (
     <View style={styles.floatingCard}>
       <View style={styles.divider} />
 
       {/* Estado del GPS */}
-      {errorMsg ? (
-        <Text style={styles.errorText}>{errorMsg}</Text>
+      {location.error ? (
+        <Text style={styles.errorText}>{location.error}</Text>
       ) : location ? (
         <Text style={styles.text}>
-          Lat: {location.coords.latitude.toFixed(4)}, Lng:{" "}
-          {location.coords.longitude.toFixed(4)}
+          Lat: {location.location?.latitude.toFixed(4)}, Lng:{" "}
+          {location.location?.longitude.toFixed(4)}
         </Text>
       ) : (
         <Text style={styles.text}>Estado: Inactivo</Text>
@@ -103,12 +42,14 @@ export default function DriverMap() {
       <TouchableOpacity
         style={[
           styles.button,
-          isTracking ? styles.buttonStop : styles.buttonStart,
+          location.running ? styles.buttonStop : styles.buttonStart,
         ]}
-        onPress={isTracking ? stopTracking : startTracking}
+        onPress={
+          location.running ? location.stopTracking : location.startTracking
+        }
       >
         <Text style={styles.buttonText}>
-          {isTracking ? "Detener Rastreo" : "Iniciar Rastreo"}
+          {location.running ? "Detener Rastreo" : "Iniciar Rastreo"}
         </Text>
       </TouchableOpacity>
     </View>

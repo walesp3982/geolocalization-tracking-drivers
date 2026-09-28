@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Button, StyleSheet, Text } from "react-native";
 import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
 // NUEVO: pantalla de panel de administración (tabla de grupos)
-import DriverMap from "@/components/DriverMap";
+import DriverMap from "@/components/DriverButtonTracking";
 import { useCurrentLocation } from "@/hooks/use-current-location";
 import PanelAdminScreen from "./admin/grupos/index";
 
