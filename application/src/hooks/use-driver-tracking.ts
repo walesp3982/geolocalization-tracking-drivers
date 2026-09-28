@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { useLocationTracking } from "./use-location";
+import { useLocationTracking } from "./use-location-tracking";
 import { useWebSocket } from "./use-websocket";
 
 const WS_APP = process.env.EXPO_PUBLIC_API_URL ?? "ws://10.0.2.2:8000";
 const WS_TRACKING = WS_APP + "/tracking";
 
 export default function useDriverTracking(): {
-  location: import("./use-location").DeviceLocation | null;
+  location: import("./use-location-tracking").DeviceLocation | null;
   running: boolean;
   startTracking: () => void;
   finishedTracking: () => void;
