@@ -1,16 +1,18 @@
 import * as Location from "expo-location";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function useCurrentLocation() {
   const [location, setLocation] = useState<Location.LocationObject | null>(
     null,
   );
-
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const subscriptionRef = useRef<Location.LocationSubscription | null>(null);
 
   const getCurrentLocation = async () => {
     try {
       setLoading(true);
+      setError(null);
 
       const { status } = await Location.requestForegroundPermissionsAsync();
 
@@ -24,15 +26,36 @@ export function useCurrentLocation() {
 
       setLocation(location);
 
+      subscriptionRef.current?.remove();
+      subscriptionRef.current = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          timeInterval: 1000,
+          distanceInterval: 1,
+        },
+        setLocation,
+        setError,
+      );
+
       return location;
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to get device location";
+      setError(message);
+      return null;
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    return () => subscriptionRef.current?.remove();
+  }, []);
+
   return {
     location,
     loading,
+    error,
     getCurrentLocation,
   };
 }
