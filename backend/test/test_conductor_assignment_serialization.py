@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import pytest
 
 from src.api.router.conductor import serialize_assignment_response
-from src.database.models import Ruta
+from src.database.models import PuntosControl, Ruta
 
 
 @pytest.mark.asyncio
@@ -27,6 +27,14 @@ async def test_serialize_assignment_response_returns_json_serializable_route():
         },
     )
     ruta.id_ruta = 42
+    control_point = PuntosControl(
+        radio=50,
+        ubication="POINT(-70.65 -33.42)",
+        n_puntos_relativo=1,
+        id_ruta=42,
+    )
+    control_point.id_punto_control = 5
+    ruta.puntos_control.append(control_point)
 
     db = AsyncMock()
     db.scalar.return_value = (
@@ -50,3 +58,14 @@ async def test_serialize_assignment_response_returns_json_serializable_route():
     assert assignment["ruta"]["numero_ruta"] == "R-12"
     assert assignment["ruta"]["line"]["geometry"]["type"] == "LineString"
     assert assignment["ruta"]["line"]["geometry"]["coordinates"][0] == [-70.6, -33.4]
+    assert assignment["ruta"]["puntos_control"] == [
+        {
+            "id_punto_control": 5,
+            "radio": 50.0,
+            "n_puntos_relativo": 1,
+            "ubicacion": {
+                "type": "Point",
+                "coordinates": [-70.65, -33.42],
+            },
+        }
+    ]

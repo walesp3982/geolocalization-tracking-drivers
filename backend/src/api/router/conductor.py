@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
-from geoalchemy2.shape import from_shape
+from geoalchemy2.shape import from_shape, to_shape
 from geojson_pydantic import Feature, LineString
 from pydantic import BaseModel
 from shapely.geometry import Point
@@ -68,6 +68,25 @@ class AsignacionRutaResponse(BaseModel):
     ruta: RutaAsignacionResponse
 
 
+def serialize_control_point(control_point: Any) -> dict[str, Any]:
+    geometry = to_shape(control_point.ubicacion)
+    if not isinstance(geometry, Point):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="La ubicación del punto de control no es un POINT válido",
+        )
+
+    return {
+        "id_punto_control": control_point.id_punto_control,
+        "radio": float(control_point.radio),
+        "n_puntos_relativo": control_point.n_puntos_relativo,
+        "ubicacion": {
+            "type": "Point",
+            "coordinates": [float(geometry.x), float(geometry.y)],
+        },
+    }
+
+
 async def serialize_assignment_response(
     session: DatabaseSession,
     assignment: AsignacionRuta | dict[str, Any],
@@ -122,6 +141,10 @@ async def serialize_assignment_response(
         "lugar_final": route.lugar_final,
         "tiempo_estimado": route.tiempo_estimado,
         "line": line_feature.model_dump(mode="json"),
+        "puntos_control": [
+            serialize_control_point(control_point)
+            for control_point in getattr(route, "puntos_control", [])
+        ],
     }
 
     payload["ruta"] = serialized_route

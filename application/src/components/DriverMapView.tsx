@@ -5,7 +5,7 @@ import { useMapOrientation } from "@/hooks/use-map-orientation";
 import { apiRequest } from "@/services/api";
 import { useNetworkState } from "expo-network";
 import { SymbolView } from "expo-symbols";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -14,7 +14,12 @@ import {
   Text,
   View,
 } from "react-native";
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, {
+  Circle,
+  Marker,
+  Polyline,
+  PROVIDER_GOOGLE,
+} from "react-native-maps";
 
 interface PointerColors {
   bgColor: string;
@@ -24,6 +29,13 @@ interface PointerColors {
 interface RoutePoint {
   latitude: number;
   longitude: number;
+}
+
+interface RouteControlPoint {
+  id: number | string;
+  coordinate: RoutePoint;
+  radius: number;
+  relativeNumber?: number | null;
 }
 
 interface RouteAssignment {
@@ -38,6 +50,7 @@ interface RouteAssignment {
   fecha_hora_comienzo?: string | null;
   fecha_hora_fin?: string | null;
   routeCoordinates: RoutePoint[];
+  controlPoints: RouteControlPoint[];
 }
 
 const pointerActive: PointerColors = {
@@ -109,6 +122,33 @@ function extractCoordsFromGeometry(input: unknown): RoutePoint[] {
   });
 }
 
+function extractPointCoordinate(input: unknown): RoutePoint | null {
+  if (!input || typeof input !== "object") {
+    return null;
+  }
+
+  const source = input as Record<string, unknown>;
+  const point =
+    source.ubicacion ?? source.geometry ?? source.location ?? source;
+  const coordinates = Array.isArray(point)
+    ? point
+    : point && typeof point === "object"
+      ? (point as Record<string, unknown>).coordinates
+      : null;
+
+  if (!Array.isArray(coordinates) || coordinates.length < 2) {
+    return null;
+  }
+
+  const longitude = toNumber(coordinates[0]);
+  const latitude = toNumber(coordinates[1]);
+  if (longitude === null || latitude === null) {
+    return null;
+  }
+
+  return { latitude, longitude };
+}
+
 function normalizeRouteAssignment(raw: unknown): RouteAssignment | null {
   if (!raw) {
     return null;
@@ -149,6 +189,33 @@ function normalizeRouteAssignment(raw: unknown): RouteAssignment | null {
   const routeCoordinates = extractCoordsFromGeometry(
     route?.line ?? route?.geometry ?? route?.coordinates ?? nextAssignment,
   );
+  const controlPoints = Array.isArray(route?.puntos_control)
+    ? route.puntos_control.flatMap((rawPoint, index) => {
+        if (!rawPoint || typeof rawPoint !== "object") {
+          return [];
+        }
+
+        const point = rawPoint as Record<string, unknown>;
+        const coordinate = extractPointCoordinate(point);
+        const radius = toNumber(point.radio);
+
+        if (!coordinate || radius === null || radius <= 0) {
+          return [];
+        }
+
+        return [
+          {
+            id:
+              toNumber(point.id_punto_control) ??
+              toNumber(point.n_puntos_relativo) ??
+              index,
+            coordinate,
+            radius,
+            relativeNumber: toNumber(point.n_puntos_relativo),
+          },
+        ];
+      })
+    : [];
 
   return {
     id_asignacion: toNumber(nextAssignment.id_asignacion) ?? undefined,
@@ -175,6 +242,7 @@ function normalizeRouteAssignment(raw: unknown): RouteAssignment | null {
     fecha_hora_fin:
       (nextAssignment.fecha_hora_fin as string | undefined) ?? null,
     routeCoordinates,
+    controlPoints,
   };
 }
 
@@ -348,9 +416,40 @@ export default function DriverMapView() {
             coordinates={assignment.routeCoordinates}
             strokeColor="#1d4ed8"
             strokeWidth={5}
-            lineDashPattern={[6, 8]}
+            lineCap="round"
+            lineJoin="round"
           />
         )}
+
+        {assignment?.controlPoints.map((point) => (
+          <Fragment key={point.id}>
+            <Circle
+              center={point.coordinate}
+              radius={point.radius}
+              strokeColor="#4C1D95"
+              strokeWidth={3}
+              fillColor="rgba(109, 40, 217, 0.32)"
+            />
+            <Marker
+              coordinate={point.coordinate}
+              anchor={{ x: 0.5, y: 0.5 }}
+              tracksViewChanges
+              accessibilityLabel={`Punto de control ${point.relativeNumber ?? point.id}`}
+            >
+              <View style={styles.controlPointMarker}>
+                <SymbolView
+                  name={{
+                    ios: "flag.checkered",
+                    android: "flag",
+                    web: "flag",
+                  }}
+                  size={16}
+                  tintColor="#FFFFFF"
+                />
+              </View>
+            </Marker>
+          </Fragment>
+        ))}
 
         <Marker
           key={isTrackingActive ? "marker-active" : "marker-inactive"}
@@ -575,6 +674,21 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.28,
     shadowRadius: 5,
+  },
+  controlPointMarker: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    backgroundColor: "#6D28D9",
+    elevation: 6,
+    shadowColor: "#2E1065",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 3,
   },
   notice: {
     maxWidth: 220,
