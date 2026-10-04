@@ -5,7 +5,9 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
-from geoalchemy2 import Geometry
+import shapely
+from geoalchemy2 import Geometry, WKBElement, WKTElement
+from geoalchemy2.shape import from_shape
 from sqlalchemy import (
     UUID,
     BigInteger,
@@ -102,7 +104,7 @@ class Ruta(Base):
     tiempo_estimado: Mapped[int | None] = mapped_column(
         Integer, nullable=True
     )  # minutos
-    line: Mapped[Geometry] = mapped_column(
+    line: Mapped[WKBElement | WKTElement] = mapped_column(
         Geometry(geometry_type="LINESTRING", srid=4326, spatial_index=True),
         nullable=False,
     )
@@ -116,6 +118,22 @@ class Ruta(Base):
 
     puntos_control: Mapped[list[PuntosControl]] = relationship(back_populates="ruta")
 
+    def __init__(
+        self,
+        id_grupo_operativo: int,
+        numero_ruta: str,
+        lugar_inicial: str,
+        lugar_final: str,
+        tiempo_estimado: int,
+        line: dict[str, Any],
+    ):
+        self.id_grupo_operativo = id_grupo_operativo
+        self.numero_ruta = numero_ruta
+        self.lugar_inicial = lugar_inicial
+        self.lugar_final = lugar_final
+        self.tiempo_estimado = tiempo_estimado
+        self.line = from_shape(shapely.geometry.shape(line), srid=4326)
+
 
 class PuntosControl(Base):
     __tablename__ = "puntos_control"
@@ -125,7 +143,7 @@ class PuntosControl(Base):
         Integer, primary_key=True, autoincrement=True
     )
     radio: Mapped[Decimal] = mapped_column(Numeric(10, 7), nullable=False)
-    ubicacion: Mapped[Any] = mapped_column(
+    ubicacion: Mapped[WKBElement | WKTElement] = mapped_column(
         Geometry(geometry_type="POINT", srid=4326, spatial_index=True), nullable=False
     )
     n_puntos_relativo: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -134,6 +152,14 @@ class PuntosControl(Base):
         Integer, ForeignKey("ruta.id_ruta"), nullable=False
     )
     ruta: Mapped[Ruta] = relationship(back_populates="puntos_control")
+
+    def __init__(
+        self, radio: float, ubication: str, n_puntos_relativo: int, id_ruta: int
+    ) -> None:
+        self.radio = Decimal(radio)
+        self.ubicacion = WKTElement(ubication)
+        self.n_puntos_relativo = n_puntos_relativo
+        self.id_ruta = id_ruta
 
 
 class AsignacionRuta(Base):
@@ -186,7 +212,7 @@ class Recorrido(Base):
     id_recorrido: Mapped[int] = mapped_column(
         Integer, ForeignKey("asignacion_ruta.id_asignacion"), nullable=False
     )
-    ubicacion: Mapped[Any] = mapped_column(
+    ubicacion: Mapped[WKBElement] = mapped_column(
         Geometry(geometry_type="POINT", srid=4326, spatial_index=True), nullable=False
     )
     # Diagrama dice TIME; recomiendo DateTime para no perder la fecha del punto.
