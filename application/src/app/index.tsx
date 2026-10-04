@@ -1,28 +1,37 @@
 import DriverMapView from "@/components/DriverMapView";
 import LoginScreen from "@/components/login-screen";
-import { useState } from "react";
+import { useAuth } from "@/context/auth-context";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+
 import PanelAdminScreen from "./admin/grupos/index";
 
-type Rol = "chofer" | "admin";
-
 export default function HomeScreen() {
-  const [sesionIniciada, setSesionIniciada] = useState(false);
-  const [rol, setRol] = useState<Rol | null>(null);
+  const { user, isAuthenticated, isLoading } = useAuth();
 
-  if (!sesionIniciada) {
+  if (isLoading) {
     return (
-      <LoginScreen
-        onLoginExitoso={(rolElegido: Rol) => {
-          setRol(rolElegido);
-          setSesionIniciada(true);
-        }}
-      />
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" />
+      </View>
     );
   }
 
-  if (rol === "admin") {
+  if (!isAuthenticated || !user) {
+    return <LoginScreen />;
+  }
+
+  if (user.role === "admin") {
     return <PanelAdminScreen />;
   }
 
   return <DriverMapView />;
 }
+
+const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
+  },
+});

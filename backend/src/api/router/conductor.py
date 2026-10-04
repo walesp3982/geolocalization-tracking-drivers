@@ -1,10 +1,13 @@
+import json
 from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
 from geoalchemy2.shape import from_shape
+from geojson_pydantic import Feature, LineString
 from pydantic import BaseModel
 from shapely.geometry import Point
-from sqlalchemy import desc, select
+from sqlalchemy import desc, func, select
 from sqlalchemy.orm import selectinload
 
 from src.api.deps import GetConductor
@@ -38,6 +41,91 @@ class UpdatePassword(BaseModel):
 class NewRecorrido(BaseModel):
     latitud: float
     longitud: float
+
+
+class MetadataLine(BaseModel):
+    id_ruta: int
+    numero_ruta: str
+
+
+class RutaAsignacionResponse(BaseModel):
+    id_ruta: int
+    id_grupo: int
+    numero_ruta: str
+    lugar_inicial: str
+    lugar_final: str
+    tiempo_estimado: int | None
+    line: Feature[LineString, MetadataLine]
+
+
+class AsignacionRutaResponse(BaseModel):
+    id_asignacion: int
+    id_conductor: int
+    id_ruta: int
+    fecha_hora_inicio: datetime
+    fecha_hora_comienzo: datetime | None = None
+    fecha_hora_fin: datetime | None = None
+    ruta: RutaAsignacionResponse
+
+
+async def serialize_assignment_response(
+    session: DatabaseSession,
+    assignment: AsignacionRuta | dict[str, Any],
+) -> dict[str, Any]:
+    if isinstance(assignment, dict):
+        route = assignment.get("ruta")
+        payload = assignment
+    else:
+        route = assignment.ruta
+        payload = {
+            "id_asignacion": assignment.id_asignacion,
+            "id_conductor": assignment.id_conductor,
+            "id_ruta": assignment.id_ruta,
+            "fecha_hora_inicio": assignment.fecha_hora_inicio,
+            "fecha_hora_comienzo": assignment.fecha_hora_comienzo,
+            "fecha_hora_fin": assignment.fecha_hora_fin,
+        }
+
+    if route is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="La asignación no tiene una ruta asociada",
+        )
+
+    stmt = select(func.ST_AsGeoJSON(Ruta.line).label("geojson")).where(
+        Ruta.id_ruta == route.id_ruta
+    )
+    geojson = await session.scalar(stmt)
+
+    if geojson is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="No fue posible serializar la geometría de la ruta",
+        )
+
+    geojson_dict = json.loads(geojson) if isinstance(geojson, str) else geojson
+
+    line_feature = Feature[LineString, MetadataLine](
+        type="Feature",
+        geometry=LineString(**geojson_dict),
+        properties=MetadataLine(
+            id_ruta=route.id_ruta,
+            numero_ruta=route.numero_ruta,
+        ),
+    )
+
+    serialized_route = {
+        "id_ruta": route.id_ruta,
+        "id_grupo": route.id_grupo_operativo,
+        "numero_ruta": route.numero_ruta,
+        "lugar_inicial": route.lugar_inicial,
+        "lugar_final": route.lugar_final,
+        "tiempo_estimado": route.tiempo_estimado,
+        "line": line_feature.model_dump(mode="json"),
+    }
+
+    payload["ruta"] = serialized_route
+    return payload
 
 
 # ==========================================
@@ -125,7 +213,7 @@ async def get_asignacion(
             detail="El conductor no tiene una asignación activa",
         )
 
-    return asignacion
+    return await serialize_assignment_response(session, asignacion)
 
 
 # ==========================================

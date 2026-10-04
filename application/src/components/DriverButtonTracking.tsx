@@ -3,11 +3,25 @@ import * as Location from "expo-location";
 import { useEffect, useRef } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
+interface RouteAssignmentMeta {
+  id_asignacion?: number;
+  id_ruta?: number;
+  numero_ruta?: string;
+  lugar_inicial?: string;
+  lugar_final?: string;
+  tiempo_estimado?: number | null;
+  fecha_hora_inicio?: string | null;
+  fecha_hora_comienzo?: string | null;
+  fecha_hora_fin?: string | null;
+}
+
 interface DriverButtonProps {
   changeIsTrackingActive: (active: boolean) => void;
+  assignment?: RouteAssignmentMeta | null;
 }
 export default function DriverButtonTracking({
   changeIsTrackingActive,
+  assignment,
 }: DriverButtonProps) {
   const location = useDriverTracking();
 
@@ -39,19 +53,54 @@ export default function DriverButtonTracking({
 
   return (
     <View style={styles.floatingCard}>
+      {assignment && (
+        <View style={styles.assignmentCard}>
+          <Text style={styles.assignmentTitle}>
+            {assignment.numero_ruta
+              ? `Ruta ${assignment.numero_ruta}`
+              : `Asignación ${assignment.id_asignacion ?? "-"}`}
+          </Text>
+
+          <Text style={styles.assignmentText}>
+            {assignment.lugar_inicial ?? "Origen no disponible"} →{" "}
+            {assignment.lugar_final ?? "Destino no disponible"}
+          </Text>
+
+          <View style={styles.metaGrid}>
+            {assignment.id_ruta !== undefined && (
+              <Text style={styles.metaText}>ID ruta: {assignment.id_ruta}</Text>
+            )}
+            {assignment.tiempo_estimado !== null &&
+              assignment.tiempo_estimado !== undefined && (
+                <Text style={styles.metaText}>
+                  Tiempo estimado: {assignment.tiempo_estimado} min
+                </Text>
+              )}
+            {assignment.fecha_hora_inicio && (
+              <Text style={styles.metaText}>
+                Inicio:{" "}
+                {new Date(assignment.fecha_hora_inicio).toLocaleString()}
+              </Text>
+            )}
+            {assignment.fecha_hora_comienzo && (
+              <Text style={styles.metaText}>
+                Comienzo:{" "}
+                {new Date(assignment.fecha_hora_comienzo).toLocaleString()}
+              </Text>
+            )}
+            {assignment.fecha_hora_fin && (
+              <Text style={styles.metaText}>
+                Fin: {new Date(assignment.fecha_hora_fin).toLocaleString()}
+              </Text>
+            )}
+          </View>
+        </View>
+      )}
+
       <View style={styles.divider} />
 
       {/* Estado del GPS */}
-      {location.error ? (
-        <Text style={styles.errorText}>{location.error}</Text>
-      ) : location ? (
-        <Text style={styles.text}>
-          Lat: {location.location?.latitude.toFixed(4)}, Lng:{" "}
-          {location.location?.longitude.toFixed(4)}
-        </Text>
-      ) : (
-        <Text style={styles.text}>Estado: Inactivo</Text>
-      )}
+      {location.error && <Text style={styles.errorText}>{location.error}</Text>}
 
       {/* Botón de control de rastreo */}
       <TouchableOpacity
@@ -87,6 +136,33 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+  },
+  assignmentCard: {
+    width: "100%",
+    backgroundColor: "#f8fafc",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#dfe7f1",
+  },
+  assignmentTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#17324D",
+    marginBottom: 4,
+  },
+  assignmentText: {
+    fontSize: 12,
+    color: "#475569",
+    marginBottom: 8,
+  },
+  metaGrid: {
+    gap: 4,
+  },
+  metaText: {
+    fontSize: 11,
+    color: "#334155",
   },
   routesContainer: {
     width: "100%",

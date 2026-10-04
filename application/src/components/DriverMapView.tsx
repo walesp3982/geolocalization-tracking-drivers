@@ -2,6 +2,7 @@ import DriverTrackingControls from "@/components/DriverButtonTracking";
 import { ThemedView } from "@/components/themed-view";
 import { useHeading } from "@/hooks/use-heading";
 import { useMapOrientation } from "@/hooks/use-map-orientation";
+import { apiRequest } from "@/services/api";
 import { useNetworkState } from "expo-network";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useRef, useState } from "react";
@@ -13,11 +14,30 @@ import {
   Text,
   View,
 } from "react-native";
-import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
 
 interface PointerColors {
   bgColor: string;
   borderColor: string;
+}
+
+interface RoutePoint {
+  latitude: number;
+  longitude: number;
+}
+
+interface RouteAssignment {
+  id_asignacion?: number;
+  id_ruta?: number;
+  id_conductor?: number;
+  numero_ruta?: string;
+  lugar_inicial?: string;
+  lugar_final?: string;
+  tiempo_estimado?: number | null;
+  fecha_hora_inicio?: string | null;
+  fecha_hora_comienzo?: string | null;
+  fecha_hora_fin?: string | null;
+  routeCoordinates: RoutePoint[];
 }
 
 const pointerActive: PointerColors = {
@@ -29,6 +49,135 @@ const pointerInactive: PointerColors = {
   bgColor: "#f7d653",
   borderColor: "#ffca1c",
 };
+
+function toNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+function extractCoordsFromGeometry(input: unknown): RoutePoint[] {
+  if (!input || typeof input !== "object") {
+    return [];
+  }
+
+  const source = input as Record<string, unknown>;
+  const geometry = source.geometry as Record<string, unknown> | undefined;
+  const line = source.line as Record<string, unknown> | undefined;
+  const ruta = source.ruta as Record<string, unknown> | undefined;
+  const rutaLine = ruta?.line as Record<string, unknown> | undefined;
+  const rutaGeometry = ruta?.geometry as Record<string, unknown> | undefined;
+
+  const coordinates = Array.isArray(source.coordinates)
+    ? source.coordinates
+    : Array.isArray(geometry?.coordinates)
+      ? geometry.coordinates
+      : Array.isArray(line?.coordinates)
+        ? line.coordinates
+        : Array.isArray(rutaLine?.coordinates)
+          ? rutaLine.coordinates
+          : Array.isArray(rutaGeometry?.coordinates)
+            ? rutaGeometry.coordinates
+            : [];
+
+  if (!Array.isArray(coordinates)) {
+    return [];
+  }
+
+  return coordinates.flatMap((point) => {
+    if (!Array.isArray(point) || point.length < 2) {
+      return [];
+    }
+
+    const longitude = toNumber(point[0]);
+    const latitude = toNumber(point[1]);
+
+    if (longitude === null || latitude === null) {
+      return [];
+    }
+
+    return [{ latitude, longitude }];
+  });
+}
+
+function normalizeRouteAssignment(raw: unknown): RouteAssignment | null {
+  if (!raw) {
+    return null;
+  }
+
+  const items = Array.isArray(raw)
+    ? raw
+    : Array.isArray((raw as Record<string, unknown>)?.asignaciones)
+      ? ((raw as Record<string, unknown>).asignaciones as unknown[])
+      : [raw];
+
+  if (!items.length) {
+    return null;
+  }
+
+  const ordered = [...items].sort((left, right) => {
+    const leftDate = new Date(
+      (left as Record<string, unknown>)?.fecha_hora_inicio as string | number,
+    ).getTime();
+    const rightDate = new Date(
+      (right as Record<string, unknown>)?.fecha_hora_inicio as string | number,
+    ).getTime();
+    return Number.isNaN(leftDate) || Number.isNaN(rightDate)
+      ? 0
+      : leftDate - rightDate;
+  });
+
+  const nextAssignment = ordered[0] as Record<string, unknown> | undefined;
+  if (!nextAssignment) {
+    return null;
+  }
+
+  const route =
+    (nextAssignment.ruta as Record<string, unknown>) ??
+    (nextAssignment.route as Record<string, unknown>) ??
+    nextAssignment;
+
+  const routeCoordinates = extractCoordsFromGeometry(
+    route?.line ?? route?.geometry ?? route?.coordinates ?? nextAssignment,
+  );
+
+  return {
+    id_asignacion: toNumber(nextAssignment.id_asignacion) ?? undefined,
+    id_ruta:
+      toNumber(nextAssignment.id_ruta) ?? toNumber(route?.id_ruta) ?? undefined,
+    id_conductor: toNumber(nextAssignment.id_conductor) ?? undefined,
+    numero_ruta:
+      (route?.numero_ruta as string | undefined) ??
+      (nextAssignment.numero_ruta as string | undefined) ??
+      undefined,
+    lugar_inicial:
+      (route?.lugar_inicial as string | undefined) ??
+      (route?.lugar_initial as string | undefined) ??
+      undefined,
+    lugar_final: (route?.lugar_final as string | undefined) ?? undefined,
+    tiempo_estimado:
+      toNumber(route?.tiempo_estimado) ??
+      toNumber(nextAssignment.tiempo_estimado) ??
+      null,
+    fecha_hora_inicio:
+      (nextAssignment.fecha_hora_inicio as string | undefined) ?? null,
+    fecha_hora_comienzo:
+      (nextAssignment.fecha_hora_comienzo as string | undefined) ?? null,
+    fecha_hora_fin:
+      (nextAssignment.fecha_hora_fin as string | undefined) ?? null,
+    routeCoordinates,
+  };
+}
+
 export default function DriverMapView() {
   const heading = useHeading(true);
   const mapOrientation = useMapOrientation({
@@ -37,6 +186,8 @@ export default function DriverMapView() {
     location: heading.location,
   });
   const [isTrackingActive, setIsTrackingActive] = useState(false);
+  const [assignment, setAssignment] = useState<RouteAssignment | null>(null);
+  const [isLoadingAssignment, setIsLoadingAssignment] = useState(false);
   const networkState = useNetworkState();
   const [mapAttempt, setMapAttempt] = useState(0);
   const isOffline =
@@ -69,6 +220,25 @@ export default function DriverMapView() {
     wasOffline.current = isOffline;
   }, [isOffline]);
 
+  const loadAssignment = async () => {
+    setIsLoadingAssignment(true);
+
+    try {
+      const data = await apiRequest<unknown>("/conductor/asignacion");
+      const normalized = normalizeRouteAssignment(data);
+      setAssignment(normalized);
+    } catch (error) {
+      setAssignment(null);
+      console.warn("No se pudo cargar la asignación activa:", error);
+    } finally {
+      setIsLoadingAssignment(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadAssignment();
+  }, []);
+
   if (!heading.location) {
     return (
       <ThemedView style={[styles.container, styles.loadingContainer]}>
@@ -90,8 +260,58 @@ export default function DriverMapView() {
 
   const currentLocation = heading.location;
 
+  const hasAssignment = Boolean(
+    assignment && assignment.routeCoordinates.length > 0,
+  );
+
   return (
     <ThemedView style={styles.container}>
+      <View
+        style={[
+          styles.assignmentHeader,
+          hasAssignment
+            ? styles.assignmentHeaderActive
+            : styles.assignmentHeaderInactive,
+        ]}
+      >
+        <View style={styles.assignmentHeaderTextWrap}>
+          <Text style={styles.assignmentHeaderLabel}>
+            {hasAssignment ? "Ruta asignada" : "Sin ruta asignada"}
+          </Text>
+          {hasAssignment ? (
+            <Text style={styles.assignmentHeaderMeta}>
+              {assignment?.numero_ruta
+                ? `Ruta ${assignment.numero_ruta}`
+                : `Asignación ${assignment?.id_asignacion ?? "-"}`}
+            </Text>
+          ) : (
+            <Text style={styles.assignmentHeaderMeta}>
+              Busca una asignación disponible
+            </Text>
+          )}
+        </View>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Refrescar asignación"
+          style={styles.refreshButton}
+          onPress={() => {
+            void loadAssignment();
+          }}
+          disabled={isLoadingAssignment}
+        >
+          <SymbolView
+            name={{
+              ios: "arrow.clockwise",
+              android: "refresh",
+              web: "refresh",
+            }}
+            size={18}
+            tintColor="#ffffff"
+          />
+        </Pressable>
+      </View>
+
       <MapView
         key={mapAttempt}
         ref={mapOrientation.mapRef}
@@ -123,6 +343,15 @@ export default function DriverMapView() {
           if (details.isGesture) mapOrientation.stopFollowing();
         }}
       >
+        {assignment && assignment.routeCoordinates.length > 1 && (
+          <Polyline
+            coordinates={assignment.routeCoordinates}
+            strokeColor="#1d4ed8"
+            strokeWidth={5}
+            lineDashPattern={[6, 8]}
+          />
+        )}
+
         <Marker
           key={isTrackingActive ? "marker-active" : "marker-inactive"}
           coordinate={{
@@ -245,7 +474,10 @@ export default function DriverMapView() {
         </View>
       )}
 
-      <DriverTrackingControls changeIsTrackingActive={setIsTrackingActive} />
+      <DriverTrackingControls
+        changeIsTrackingActive={setIsTrackingActive}
+        assignment={assignment}
+      />
     </ThemedView>
   );
 }
@@ -263,9 +495,54 @@ const styles = StyleSheet.create({
     color: "#17324D",
     fontSize: 15,
   },
+  assignmentHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 54,
+    paddingBottom: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.18)",
+  },
+  assignmentHeaderActive: {
+    backgroundColor: "rgba(30, 64, 175, 0.9)",
+  },
+  assignmentHeaderInactive: {
+    backgroundColor: "rgba(107, 114, 128, 0.88)",
+  },
+  assignmentHeaderTextWrap: {
+    flex: 1,
+    marginRight: 12,
+  },
+  assignmentHeaderLabel: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  assignmentHeaderMeta: {
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 12,
+  },
+  refreshButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.25)",
+  },
   mapControls: {
     position: "absolute",
-    top: 16,
+    top: 96,
     left: 16,
     zIndex: 10,
   },
