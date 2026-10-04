@@ -3,7 +3,12 @@ import * as Location from "expo-location";
 import { useEffect, useRef } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-export default function DriverMap() {
+interface DriverButtonProps {
+  changeIsTrackingActive: (active: boolean) => void;
+}
+export default function DriverButtonTracking({
+  changeIsTrackingActive,
+}: DriverButtonProps) {
   const location = useDriverTracking();
 
   // Estados para la selección de ruta y sentido
@@ -11,6 +16,16 @@ export default function DriverMap() {
     null,
   );
   const isMounted = useRef<boolean>(true);
+
+  useEffect(() => {
+    console.log("location.running", location.running);
+    changeIsTrackingActive(location.running);
+
+    return () => {
+      console.log("Cleaning up location subscription");
+      changeIsTrackingActive(false);
+    };
+  }, [location.running]);
 
   useEffect(() => {
     isMounted.current = true;

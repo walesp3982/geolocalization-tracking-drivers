@@ -20,6 +20,12 @@ export function useMapOrientation({
   const [mode, setMode] = useState<MapOrientationMode>("rotate");
   const cameraHeading =
     mode === "rotate" && heading !== null ? normalizeAngle(heading) : 0;
+  const pointerHeading =
+    mode === "rotate"
+      ? cameraHeading
+      : heading === null
+        ? 0
+        : normalizeAngle(heading);
 
   useEffect(() => {
     if (!enabled || mode !== "north") return;
@@ -58,6 +64,7 @@ export function useMapOrientation({
     mapRef,
     mode,
     cameraHeading,
+    pointerHeading,
     cycleMode,
     stopFollowing,
   };
