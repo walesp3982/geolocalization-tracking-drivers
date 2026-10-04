@@ -110,7 +110,7 @@ export default function DriverMapView() {
                 latitude: currentLocation.coords.latitude,
                 longitude: currentLocation.coords.longitude,
               },
-              heading: mapOrientation.cameraHeading,
+              heading: -mapOrientation.cameraHeading,
               pitch: 0,
             },
             { duration: 200 },
@@ -129,7 +129,9 @@ export default function DriverMapView() {
             latitude: currentLocation.coords.latitude,
             longitude: currentLocation.coords.longitude,
           }}
-          rotation={mapOrientation.pointerHeading}
+          rotation={
+            mapOrientation.mode === "follow" ? mapOrientation.pointerHeading : 0
+          }
           flat
           tracksViewChanges={tracksViewChanges}
           anchor={{ x: 0.5, y: 0.5 }}
