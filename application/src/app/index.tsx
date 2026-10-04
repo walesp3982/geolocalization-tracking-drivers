@@ -1,102 +1,37 @@
-import { useEffect, useRef, useState } from "react";
-import { ThemedView } from "@/components/themed-view";
 import LoginScreen from "@/components/login-screen";
+import { ThemedView } from "@/components/themed-view";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
-import { iniciarRastreoUbicacion } from "@/services/locationService";
-import * as Location from "expo-location";
-import { Button, StyleSheet, ActivityIndicator, Text } from "react-native";
-import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
+import { useHeading } from "@/hooks/use-heading";
+import { useMapOrientation } from "@/hooks/use-map-orientation";
+import { SymbolView } from "expo-symbols";
+import { useState } from "react";
+import {
+    ActivityIndicator,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 // NUEVO: pantalla de panel de administración (tabla de grupos)
+import DriverMap from "@/components/DriverButtonTracking";
 import PanelAdminScreen from "./admin/grupos/index";
-
-type MapRegion = {
-  latitude: number;
-  longitude: number;
-  latitudeDelta: number;
-  longitudeDelta: number;
-};
 
 // NUEVO: qué tipo de usuario inició sesión
 type Rol = "chofer" | "admin";
-
-function AllowButtonLocation() {
-  return (
-    <Button
-      onPress={iniciarRastreoUbicacion}
-      title="Habilitar ubicaciónn"
-    ></Button>
-  );
-}
 
 export default function HomeScreen() {
   const [sesionIniciada, setSesionIniciada] = useState(false);
   // NUEVO: guardamos qué rol inició sesión
   const [rol, setRol] = useState<Rol | null>(null);
-  const [region, setRegion] = useState<MapRegion | null>(null);
-  const [errorUbicacion, setErrorUbicacion] = useState<string | null>(null);
-  const mapRef = useRef<MapView>(null);
 
-  useEffect(() => {
-    // Si quien inició sesión es admin, no necesitamos pedir ubicación
-    if (!sesionIniciada || rol !== "chofer") return;
-
-    let suscripcion: Location.LocationSubscription | null = null;
-    let cancelado = false;
-
-    const obtenerUbicacion = async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-
-        if (status !== "granted") {
-          setErrorUbicacion("Permiso de ubicación denegado");
-          return;
-        }
-
-        if (!(await Location.hasServicesEnabledAsync())) {
-          setErrorUbicacion("Activa la ubicación del dispositivo para continuar");
-          return;
-        }
-
-        const actualizarMapa = (ubicacion: Location.LocationObject) => {
-          if (cancelado) return;
-
-          const nuevaRegion: MapRegion = {
-            latitude: ubicacion.coords.latitude,
-            longitude: ubicacion.coords.longitude,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          };
-
-          setRegion(nuevaRegion);
-          mapRef.current?.animateToRegion(nuevaRegion, 500);
-        };
-
-        const ubicacionActual = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Highest,
-        });
-        actualizarMapa(ubicacionActual);
-
-        suscripcion = await Location.watchPositionAsync(
-          {
-            accuracy: Location.Accuracy.Highest,
-            distanceInterval: 1,
-            timeInterval: 5000,
-          },
-          actualizarMapa,
-        );
-      } catch (error) {
-        console.error("No se pudo obtener la ubicación actual:", error);
-        setErrorUbicacion("No se pudo obtener tu ubicación actual");
-      }
-    };
-
-    obtenerUbicacion();
-
-    return () => {
-      cancelado = true;
-      suscripcion?.remove();
-    };
-  }, [sesionIniciada, rol]);
+  const trackingEnabled = sesionIniciada && rol === "chofer";
+  const heading = useHeading(trackingEnabled);
+  const mapOrientation = useMapOrientation({
+    enabled: trackingEnabled,
+    heading: heading.heading,
+    location: heading.location,
+  });
 
   if (!sesionIniciada) {
     // NUEVO: LoginScreen ahora nos dice qué rol inició sesión
@@ -115,35 +50,115 @@ export default function HomeScreen() {
     return <PanelAdminScreen />;
   }
 
-  if (errorUbicacion) {
-    return (
-      <ThemedView style={styles.container}>
-        <Text>{errorUbicacion}</Text>
-      </ThemedView>
-    );
-  }
-
-  if (!region) {
+  if (!heading.location) {
     return (
       <ThemedView style={[styles.container, { justifyContent: "center" }]}>
-        <ActivityIndicator size="large" />
-        <Text>Obteniendo tu ubicación...</Text>
+        {heading.error ? (
+          <Text>{heading.error}</Text>
+        ) : (
+          <>
+            <ActivityIndicator size="large" />
+            <Text>Obteniendo tu ubicación...</Text>
+          </>
+        )}
       </ThemedView>
     );
   }
 
   return (
     <ThemedView style={styles.container}>
-      <AllowButtonLocation />
       <MapView
-        ref={mapRef}
+        ref={mapOrientation.mapRef}
         provider={PROVIDER_GOOGLE}
         style={{
           flex: 1,
         }}
-        initialRegion={region}
-        showsUserLocation
-      />
+        initialRegion={{
+          latitude: heading.location.coords.latitude,
+          longitude: heading.location.coords.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        }}
+        rotateEnabled={mapOrientation.mode !== "north"}
+        pitchEnabled={false}
+        onPanDrag={mapOrientation.stopFollowing}
+        onRegionChangeStart={(_, details) => {
+          if (details.isGesture) mapOrientation.stopFollowing();
+        }}
+      >
+        <Marker
+          coordinate={{
+            latitude: heading.location.coords.latitude,
+            longitude: heading.location.coords.longitude,
+          }}
+          rotation={heading.heading ?? 0}
+          flat
+          tracksViewChanges={false}
+          anchor={{ x: 0.5, y: 0.5 }}
+        >
+          <View style={styles.headingMarker}>
+            <SymbolView
+              name={{
+                ios: "location.north.fill",
+                android: "navigation",
+                web: "navigation",
+              }}
+              size={32}
+              tintColor="#147D92"
+            />
+          </View>
+        </Marker>
+      </MapView>
+      <View style={styles.mapControls}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={
+            mapOrientation.mode === "north"
+              ? "Norte arriba. Tocar para seguir la ubicación"
+              : mapOrientation.mode === "follow"
+                ? "Siguiendo ubicación. Tocar para seguir y rotar"
+                : "Siguiendo y rotando. Tocar para orientar al norte"
+          }
+          accessibilityState={{ selected: mapOrientation.mode !== "north" }}
+          onPress={mapOrientation.cycleMode}
+          style={[
+            styles.orientationButton,
+            mapOrientation.mode === "follow" &&
+              styles.orientationButtonFollowing,
+            mapOrientation.mode === "rotate" && styles.orientationButtonActive,
+          ]}
+        >
+          <SymbolView
+            name={{
+              ios: "location.north.fill",
+              android: "navigation",
+              web: "navigation",
+            }}
+            size={24}
+            tintColor={mapOrientation.mode === "north" ? "#17324D" : "#147D92"}
+            style={{
+              transform: [
+                {
+                  rotate:
+                    mapOrientation.mode === "rotate"
+                      ? `${-mapOrientation.cameraHeading}deg`
+                      : "0deg",
+                },
+              ],
+            }}
+          />
+        </Pressable>
+        {heading.source === "compass" &&
+          heading.accuracy !== null &&
+          heading.accuracy <= 1 && (
+            <View style={styles.calibrationNotice}>
+              <Text style={styles.calibrationText}>
+                Mueve el teléfono en forma de 8 para calibrar
+              </Text>
+            </View>
+          )}
+      </View>
+      <DriverMap />
     </ThemedView>
   );
 }
@@ -157,6 +172,55 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     flexDirection: "row",
+  },
+  mapControls: {
+    position: "absolute",
+    top: 16,
+    left: 16,
+    zIndex: 10,
+  },
+  orientationButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#ffffff",
+    elevation: 4,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+  },
+  orientationButtonActive: {
+    backgroundColor: "#D8EBE8",
+  },
+  orientationButtonFollowing: {
+    backgroundColor: "#E2EEF3",
+  },
+  headingMarker: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    backgroundColor: "#E9F4F1",
+  },
+  calibrationNotice: {
+    maxWidth: 220,
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 6,
+    backgroundColor: "#FFFFFF",
+    elevation: 3,
+  },
+  calibrationText: {
+    color: "#17324D",
+    fontSize: 12,
+    fontWeight: "500",
   },
   safeArea: {
     flex: 1,
