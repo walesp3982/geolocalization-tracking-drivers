@@ -5,8 +5,8 @@ import {
     CrearConductorPayload,
     CrearGrupoPayload,
     CrearRutaPayload,
-    EditarGrupoPayload,
     EditarConductorPayload,
+    EditarGrupoPayload,
     EditarRepresentantePayload,
     Grupo,
 } from "@/types/grupo";
@@ -35,6 +35,20 @@ export const gruposService = {
       method: "PUT",
       json: payload,
     });
+  },
+
+  asignarJefeExistente: async (grupoId: string, conductorId: string) => {
+    return apiRequest<{
+      id_grupo: number;
+      id_representante: number;
+      representante: { nombre: string; telefono: string | null };
+    }>(
+      `/admin/grupos_operativos/${grupoId}/representante/conductor_existente`,
+      {
+        method: "PUT",
+        json: { id_conductor: Number(conductorId) },
+      },
+    );
   },
 
   eliminar: async (grupoId: string): Promise<void> => {

@@ -171,7 +171,7 @@ class RutaCreateInput(BaseModel):
     lugar_final: str = Field(..., max_length=100)
     tiempo_estimado: int | None = Field(default=None, ge=1)
     geojson: GeoJSONRouteFeature
-    puntos_control: list[PuntoControlInput] = Field(default_factory=list)
+    puntos_control: list[PuntoControlInput] = Field(..., min_length=2)
 
 
 class AdminOut(BaseModel):
@@ -939,6 +939,12 @@ async def cambiar_representante_con_conductor_existente(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="El conductor no pertenece a este grupo operativo",
+        )
+
+    if not conductor.activo:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Solo se puede asignar como jefe a un conductor activo",
         )
 
     grupo.id_representante = conductor.id_conductor
