@@ -7,18 +7,19 @@ import { useNetworkState } from "expo-network";
 import { SymbolView } from "expo-symbols";
 import { Fragment, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Dimensions,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import MapView, {
-  Circle,
-  Marker,
-  Polyline,
-  PROVIDER_GOOGLE,
+    Circle,
+    Marker,
+    Polyline,
+    PROVIDER_GOOGLE,
 } from "react-native-maps";
 
 interface PointerColors {
@@ -49,6 +50,8 @@ interface RouteAssignment {
   fecha_hora_inicio?: string | null;
   fecha_hora_comienzo?: string | null;
   fecha_hora_fin?: string | null;
+  estado_tracking?: string | null;
+  puntos_control_completados?: number[];
   routeCoordinates: RoutePoint[];
   controlPoints: RouteControlPoint[];
 }
@@ -241,6 +244,18 @@ function normalizeRouteAssignment(raw: unknown): RouteAssignment | null {
       (nextAssignment.fecha_hora_comienzo as string | undefined) ?? null,
     fecha_hora_fin:
       (nextAssignment.fecha_hora_fin as string | undefined) ?? null,
+    estado_tracking:
+      (nextAssignment.estado_tracking as string | undefined) ?? null,
+    puntos_control_completados: Array.isArray(
+      nextAssignment.puntos_control_completados,
+    )
+      ? (nextAssignment.puntos_control_completados as unknown[]).flatMap(
+          (checkpointId) => {
+            const parsedId = toNumber(checkpointId);
+            return parsedId === null ? [] : [parsedId];
+          },
+        )
+      : [],
     routeCoordinates,
     controlPoints,
   };
@@ -255,6 +270,9 @@ export default function DriverMapView() {
   });
   const [isTrackingActive, setIsTrackingActive] = useState(false);
   const [assignment, setAssignment] = useState<RouteAssignment | null>(null);
+  const [reachedCheckpointIds, setReachedCheckpointIds] = useState<number[]>(
+    [],
+  );
   const [isLoadingAssignment, setIsLoadingAssignment] = useState(false);
   const networkState = useNetworkState();
   const [mapAttempt, setMapAttempt] = useState(0);
@@ -292,9 +310,24 @@ export default function DriverMapView() {
     setIsLoadingAssignment(true);
 
     try {
-      const data = await apiRequest<unknown>("/conductor/asignacion");
+      const today = new Date();
+      const startOfDay = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+      );
+      const startOfTomorrow = new Date(startOfDay);
+      startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+      const query = new URLSearchParams({
+        desde: startOfDay.toISOString(),
+        hasta: startOfTomorrow.toISOString(),
+      });
+      const data = await apiRequest<unknown>(
+        `/conductor/asignacion?${query.toString()}`,
+      );
       const normalized = normalizeRouteAssignment(data);
       setAssignment(normalized);
+      setReachedCheckpointIds(normalized?.puntos_control_completados ?? []);
     } catch (error) {
       setAssignment(null);
       console.warn("No se pudo cargar la asignación activa:", error);
@@ -330,6 +363,11 @@ export default function DriverMapView() {
 
   const hasAssignment = Boolean(
     assignment && assignment.routeCoordinates.length > 0,
+  );
+  const assignmentIsToday = Boolean(
+    assignment?.fecha_hora_inicio &&
+    new Date(assignment.fecha_hora_inicio).toDateString() ===
+      new Date().toDateString(),
   );
 
   return (
@@ -421,35 +459,42 @@ export default function DriverMapView() {
           />
         )}
 
-        {assignment?.controlPoints.map((point) => (
-          <Fragment key={point.id}>
-            <Circle
-              center={point.coordinate}
-              radius={point.radius}
-              strokeColor="#4C1D95"
-              strokeWidth={3}
-              fillColor="rgba(109, 40, 217, 0.32)"
-            />
-            <Marker
-              coordinate={point.coordinate}
-              anchor={{ x: 0.5, y: 0.5 }}
-              tracksViewChanges
-              accessibilityLabel={`Punto de control ${point.relativeNumber ?? point.id}`}
-            >
-              <View style={styles.controlPointMarker}>
-                <SymbolView
-                  name={{
-                    ios: "flag.checkered",
-                    android: "flag",
-                    web: "flag",
-                  }}
-                  size={16}
-                  tintColor="#FFFFFF"
-                />
-              </View>
-            </Marker>
-          </Fragment>
-        ))}
+        {assignment?.controlPoints.map((point) => {
+          const reached = reachedCheckpointIds.includes(Number(point.id));
+          return (
+            <Fragment key={point.id}>
+              <Circle
+                center={point.coordinate}
+                radius={point.radius}
+                strokeColor={reached ? "#16834a" : "#4C1D95"}
+                strokeWidth={3}
+                fillColor={
+                  reached
+                    ? "rgba(22, 131, 74, 0.3)"
+                    : "rgba(109, 40, 217, 0.32)"
+                }
+              />
+              <Marker
+                coordinate={point.coordinate}
+                anchor={{ x: 0.5, y: 0.5 }}
+                tracksViewChanges
+                accessibilityLabel={`Punto de control ${point.relativeNumber ?? point.id}`}
+              >
+                <View style={styles.controlPointMarker}>
+                  <SymbolView
+                    name={{
+                      ios: "flag.checkered",
+                      android: "flag",
+                      web: "flag",
+                    }}
+                    size={16}
+                    tintColor={reached ? "#b6f3ce" : "#FFFFFF"}
+                  />
+                </View>
+              </Marker>
+            </Fragment>
+          );
+        })}
 
         <Marker
           key={isTrackingActive ? "marker-active" : "marker-inactive"}
@@ -576,6 +621,23 @@ export default function DriverMapView() {
       <DriverTrackingControls
         changeIsTrackingActive={setIsTrackingActive}
         assignment={assignment}
+        canStart={assignmentIsToday && hasAssignment}
+        onCheckpointReached={(checkpointId) => {
+          setReachedCheckpointIds((current) =>
+            current.includes(checkpointId)
+              ? current
+              : [...current, checkpointId],
+          );
+        }}
+        onTrackingFinished={(result) => {
+          Alert.alert(
+            result.success ? "Recorrido completado" : "Recorrido incompleto",
+            result.success
+              ? "Se alcanzaron todos los puntos de control."
+              : "El tracking finalizó antes de completar todos los puntos.",
+          );
+          void loadAssignment();
+        }}
       />
     </ThemedView>
   );

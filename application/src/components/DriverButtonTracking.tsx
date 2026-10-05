@@ -1,6 +1,5 @@
 import useDriverTracking from "@/hooks/use-driver-tracking";
-import * as Location from "expo-location";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface RouteAssignmentMeta {
@@ -13,43 +12,33 @@ interface RouteAssignmentMeta {
   fecha_hora_inicio?: string | null;
   fecha_hora_comienzo?: string | null;
   fecha_hora_fin?: string | null;
+  estado_tracking?: string | null;
 }
 
 interface DriverButtonProps {
   changeIsTrackingActive: (active: boolean) => void;
   assignment?: RouteAssignmentMeta | null;
+  canStart: boolean;
+  onCheckpointReached: (checkpointId: number) => void;
+  onTrackingFinished: (result: { success: boolean; status?: string }) => void;
 }
 export default function DriverButtonTracking({
   changeIsTrackingActive,
   assignment,
+  canStart,
+  onCheckpointReached,
+  onTrackingFinished,
 }: DriverButtonProps) {
-  const location = useDriverTracking();
-
-  // Estados para la selección de ruta y sentido
-  const locationSubscription = useRef<Location.LocationSubscription | null>(
-    null,
+  const location = useDriverTracking(
+    assignment?.id_asignacion,
+    onCheckpointReached,
+    onTrackingFinished,
   );
-  const isMounted = useRef<boolean>(true);
 
   useEffect(() => {
-    console.log("location.running", location.running);
     changeIsTrackingActive(location.running);
-
-    return () => {
-      console.log("Cleaning up location subscription");
-      changeIsTrackingActive(false);
-    };
-  }, [location.running]);
-
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-      if (locationSubscription.current) {
-        locationSubscription.current.remove();
-      }
-    };
-  }, []);
+    return () => changeIsTrackingActive(false);
+  }, [changeIsTrackingActive, location.running]);
 
   return (
     <View style={styles.floatingCard}>
@@ -88,6 +77,11 @@ export default function DriverButtonTracking({
                 {new Date(assignment.fecha_hora_comienzo).toLocaleString()}
               </Text>
             )}
+            {assignment.estado_tracking && (
+              <Text style={styles.metaText}>
+                Tracking: {assignment.estado_tracking}
+              </Text>
+            )}
             {assignment.fecha_hora_fin && (
               <Text style={styles.metaText}>
                 Fin: {new Date(assignment.fecha_hora_fin).toLocaleString()}
@@ -107,13 +101,33 @@ export default function DriverButtonTracking({
         style={[
           styles.button,
           location.running ? styles.buttonStop : styles.buttonStart,
+          (!canStart ||
+            location.status === "connecting" ||
+            location.status === "waiting_start") &&
+            !location.running &&
+            styles.buttonDisabled,
         ]}
+        disabled={
+          (!canStart ||
+            location.status === "connecting" ||
+            location.status === "waiting_start") &&
+          !location.running
+        }
         onPress={
           location.running ? location.stopTracking : location.startTracking
         }
       >
         <Text style={styles.buttonText}>
-          {location.running ? "Detener Rastreo" : "Iniciar Rastreo"}
+          {location.running
+            ? location.status === "stopping"
+              ? "Finalizando..."
+              : "Detener Rastreo"
+            : location.status === "connecting" ||
+                location.status === "waiting_start"
+              ? "Validando inicio..."
+              : assignment?.estado_tracking === "in_progress"
+                ? "Reanudar Rastreo"
+                : "Iniciar Rastreo"}
         </Text>
       </TouchableOpacity>
     </View>
@@ -253,6 +267,9 @@ const styles = StyleSheet.create({
   },
   buttonStop: {
     backgroundColor: "#e42e41",
+  },
+  buttonDisabled: {
+    backgroundColor: "#9ca3af",
   },
   buttonText: {
     color: "#ffffff",
