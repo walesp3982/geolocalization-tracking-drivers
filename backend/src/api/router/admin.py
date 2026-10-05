@@ -949,12 +949,11 @@ async def cambiar_representante_con_conductor_existente(
 
     grupo.id_representante = conductor.id_conductor
     db.add(grupo)
-    await db.commit()
-    await db.refresh(grupo)
-
-    return GrupoOperativoOut(
+    respuesta = GrupoOperativoOut(
         id_grupo=grupo.id_grupo,
         nombre_grupo=grupo.nombre_grupo,
-        id_representante=grupo.id_representante,
+        id_representante=conductor.id_conductor,
         representante=ConductorOut.model_validate(conductor),
     )
+    await db.commit()
+    return respuesta

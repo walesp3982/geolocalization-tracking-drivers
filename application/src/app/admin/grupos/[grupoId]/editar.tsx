@@ -21,8 +21,6 @@ export default function EditarGrupoScreen() {
   const [lineas, setLineas] = useState(""); // texto separado por comas, ej: "231, 232"
   const [nombreRepresentante, setNombreRepresentante] = useState("");
   const [telefonoRepresentante, setTelefonoRepresentante] = useState("");
-  const [codigoRepresentante, setCodigoRepresentante] = useState("");
-  const [passwordRepresentante, setPasswordRepresentante] = useState("");
   const [representanteExistente, setRepresentanteExistente] = useState(false);
   const [desasignarRepresentante, setDesasignarRepresentante] = useState(false);
   const [grupo, setGrupo] = useState<Grupo | null>(null);
@@ -64,36 +62,13 @@ export default function EditarGrupoScreen() {
     }, [precargar]),
   );
 
-  const representanteIniciado = Boolean(
-    !representanteExistente &&
-    (nombreRepresentante.trim() ||
-      telefonoRepresentante.trim() ||
-      codigoRepresentante.trim() ||
-      passwordRepresentante),
-  );
-  const representanteCompleto = Boolean(
-    nombreRepresentante.trim() &&
-      nombreRepresentante.trim().length <= 120 &&
-    telefonoRepresentante.trim() &&
-      telefonoRepresentante.trim().length <= 20 &&
-    codigoRepresentante.trim() &&
-      codigoRepresentante.trim().length <= 10 &&
-    passwordRepresentante.length >= 6,
-  );
   const esValido = Boolean(
-    nombreGrupo.trim() &&
-      nombreGrupo.trim().length <= 20 &&
-      (!representanteIniciado || representanteCompleto),
+    nombreGrupo.trim() && nombreGrupo.trim().length <= 20,
   );
 
   const handleGuardar = async () => {
     if (!grupoId || !esValido) {
-      Alert.alert(
-        "Faltan datos",
-        !nombreGrupo.trim()
-          ? "Completa el nombre del grupo."
-          : "Completa nombre y teléfono; para un representante nuevo también se requiere código y contraseña de al menos 6 caracteres.",
-      );
+      Alert.alert("Faltan datos", "Completa el nombre del grupo.");
       return;
     }
     setGuardando(true);
@@ -104,18 +79,8 @@ export default function EditarGrupoScreen() {
           .split(",")
           .map((l) => l.trim())
           .filter(Boolean),
-        representante: representanteExistente
-          ? desasignarRepresentante
-            ? null
-            : undefined
-          : representanteIniciado
-            ? {
-                nombre: nombreRepresentante.trim(),
-                telefono: telefonoRepresentante.trim(),
-                code: codigoRepresentante.trim(),
-                password: passwordRepresentante,
-              }
-            : undefined,
+        representante:
+          representanteExistente && desasignarRepresentante ? null : undefined,
       });
       router.back();
     } catch (e) {
@@ -280,42 +245,9 @@ export default function EditarGrupoScreen() {
           )}
         </View>
       ) : (
-        <>
-          <Text style={styles.label}>Nombre</Text>
-          <TextInput
-            style={styles.input}
-            value={nombreRepresentante}
-            onChangeText={setNombreRepresentante}
-            maxLength={120}
-          />
-
-          <Text style={styles.label}>Teléfono</Text>
-          <TextInput
-            style={styles.input}
-            value={telefonoRepresentante}
-            onChangeText={setTelefonoRepresentante}
-            keyboardType="phone-pad"
-            maxLength={20}
-          />
-
-          <Text style={styles.label}>Código de acceso</Text>
-          <TextInput
-            style={styles.input}
-            value={codigoRepresentante}
-            onChangeText={setCodigoRepresentante}
-            placeholder="Máximo 10 caracteres"
-            maxLength={10}
-            autoCapitalize="none"
-          />
-
-          <Text style={styles.label}>Contraseña inicial</Text>
-          <TextInput
-            style={styles.input}
-            value={passwordRepresentante}
-            onChangeText={setPasswordRepresentante}
-            secureTextEntry
-          />
-        </>
+        <Text style={styles.emptyText}>
+          Crea un conductor en el grupo y asígnalo aquí como jefe.
+        </Text>
       )}
 
       <TouchableOpacity

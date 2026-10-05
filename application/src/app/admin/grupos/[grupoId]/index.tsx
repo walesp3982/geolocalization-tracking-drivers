@@ -1,17 +1,17 @@
-import { useCallback, useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  useWindowDimensions,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { gruposService } from "@/services/gruposService";
 import { Grupo } from "@/types/grupo";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
+import {
+    ActivityIndicator,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    useWindowDimensions,
+    View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function DetalleGrupoScreen() {
   const { grupoId } = useLocalSearchParams<{ grupoId: string }>();
@@ -38,7 +38,7 @@ export default function DetalleGrupoScreen() {
     useCallback(() => {
       setLoading(true);
       cargar();
-    }, [cargar])
+    }, [cargar]),
   );
 
   if (loading) {
@@ -77,11 +77,27 @@ export default function DetalleGrupoScreen() {
             ? `Representante: ${grupo.representante.nombre} · ${grupo.representante.telefono || "Sin teléfono"}`
             : "Sin representante asignado"}
         </Text>
+        <TouchableOpacity
+          style={styles.leaderButton}
+          onPress={() =>
+            router.push({
+              pathname: "/admin/grupos/[grupoId]/editar",
+              params: { grupoId },
+            })
+          }
+          accessibilityRole="button"
+        >
+          <Text style={styles.leaderButtonText}>
+            {grupo.representante ? "Cambiar jefe" : "Asignar jefe"}
+          </Text>
+        </TouchableOpacity>
 
         <View style={styles.sectionHeading}>
           <View>
             <Text style={styles.sectionTitle}>Conductores</Text>
-            <Text style={styles.sectionMeta}>{choferesActivos.length} activos</Text>
+            <Text style={styles.sectionMeta}>
+              {choferesActivos.length} activos
+            </Text>
           </View>
           <TouchableOpacity
             style={styles.addButton}
@@ -103,36 +119,45 @@ export default function DetalleGrupoScreen() {
             showsVerticalScrollIndicator
           >
             <View style={styles.listRows}>
-            {choferesActivos.map((chofer) => (
-              <TouchableOpacity
-                key={chofer.id}
-                style={styles.listRow}
-                onPress={() =>
-                  router.push({
-                    pathname: "/admin/grupos/[grupoId]/conductores/[conductorId]",
-                    params: { grupoId, conductorId: chofer.id },
-                  })
-                }
-                accessibilityRole="button"
-              >
-                <View style={styles.driverMark} />
-                <View style={styles.rowCopy}>
-                  <Text style={styles.rowTitle} numberOfLines={1}>{chofer.nombre}</Text>
-                  <Text style={styles.rowSubtitle}>{chofer.rutas.length} ruta(s) asignada(s)</Text>
-                </View>
-                <Text style={styles.rowArrow}>›</Text>
-              </TouchableOpacity>
-            ))}
+              {choferesActivos.map((chofer) => (
+                <TouchableOpacity
+                  key={chofer.id}
+                  style={styles.listRow}
+                  onPress={() =>
+                    router.push({
+                      pathname:
+                        "/admin/grupos/[grupoId]/conductores/[conductorId]",
+                      params: { grupoId, conductorId: chofer.id },
+                    })
+                  }
+                  accessibilityRole="button"
+                >
+                  <View style={styles.driverMark} />
+                  <View style={styles.rowCopy}>
+                    <Text style={styles.rowTitle} numberOfLines={1}>
+                      {chofer.nombre}
+                    </Text>
+                    <Text style={styles.rowSubtitle}>
+                      {chofer.rutas.length} ruta(s) asignada(s)
+                    </Text>
+                  </View>
+                  <Text style={styles.rowArrow}>›</Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </ScrollView>
         ) : (
-          <Text style={styles.emptyText}>Este grupo todavía no tiene choferes activos.</Text>
+          <Text style={styles.emptyText}>
+            Este grupo todavía no tiene choferes activos.
+          </Text>
         )}
 
         <View style={styles.sectionHeading}>
           <View>
             <Text style={styles.sectionTitle}>Rutas disponibles</Text>
-            <Text style={styles.sectionMeta}>{rutasDisponibles.length} sin asignar</Text>
+            <Text style={styles.sectionMeta}>
+              {rutasDisponibles.length} sin asignar
+            </Text>
           </View>
           <TouchableOpacity
             style={styles.addButton}
@@ -154,19 +179,25 @@ export default function DetalleGrupoScreen() {
             showsVerticalScrollIndicator
           >
             <View style={styles.listRows}>
-            {rutasDisponibles.map((ruta) => (
-              <View key={ruta.id} style={styles.listRow}>
-                <View style={styles.routeMark} />
-                <View style={styles.rowCopy}>
-                  <Text style={styles.rowTitle} numberOfLines={2}>{ruta.nombre}</Text>
-                  <Text style={styles.rowSubtitle}>Disponible para asignación</Text>
+              {rutasDisponibles.map((ruta) => (
+                <View key={ruta.id} style={styles.listRow}>
+                  <View style={styles.routeMark} />
+                  <View style={styles.rowCopy}>
+                    <Text style={styles.rowTitle} numberOfLines={2}>
+                      {ruta.nombre}
+                    </Text>
+                    <Text style={styles.rowSubtitle}>
+                      Disponible para asignación
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            ))}
+              ))}
             </View>
           </ScrollView>
         ) : (
-          <Text style={styles.emptyText}>No hay rutas disponibles para asignar.</Text>
+          <Text style={styles.emptyText}>
+            No hay rutas disponibles para asignar.
+          </Text>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -176,9 +207,25 @@ export default function DetalleGrupoScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   content: { padding: 16, paddingBottom: 28 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 16 },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
+  },
   title: { fontSize: 22, fontWeight: "700" },
   subtitle: { fontSize: 13, color: "#4b5563", marginTop: 4, marginBottom: 16 },
+  leaderButton: {
+    alignSelf: "flex-start",
+    backgroundColor: "#ecfdf5",
+    borderColor: "#a7f3d0",
+    borderRadius: 6,
+    borderWidth: 1,
+    marginBottom: 2,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+  },
+  leaderButtonText: { color: "#047857", fontSize: 13, fontWeight: "700" },
   sectionHeading: {
     alignItems: "center",
     flexDirection: "row",
@@ -214,8 +261,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     paddingVertical: 10,
   },
-  driverMark: { backgroundColor: "#2563eb", borderRadius: 3, height: 30, width: 4 },
-  routeMark: { backgroundColor: "#0f766e", borderRadius: 3, height: 30, width: 4 },
+  driverMark: {
+    backgroundColor: "#2563eb",
+    borderRadius: 3,
+    height: 30,
+    width: 4,
+  },
+  routeMark: {
+    backgroundColor: "#0f766e",
+    borderRadius: 3,
+    height: 30,
+    width: 4,
+  },
   rowCopy: { flex: 1 },
   rowTitle: { color: "#1f2937", fontSize: 14, fontWeight: "600" },
   rowSubtitle: { color: "#6b7280", fontSize: 12, marginTop: 3 },

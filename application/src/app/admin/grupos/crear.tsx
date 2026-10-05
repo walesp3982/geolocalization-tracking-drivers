@@ -8,64 +8,32 @@ import {
     StyleSheet,
     Text,
     TextInput,
-    TouchableOpacity
+    TouchableOpacity,
 } from "react-native";
 
 export default function CrearGrupoScreen() {
   const router = useRouter();
   const [nombreGrupo, setNombreGrupo] = useState("");
-  const [nombreRepresentante, setNombreRepresentante] = useState("");
-  const [telefonoRepresentante, setTelefonoRepresentante] = useState("");
-  const [codigoRepresentante, setCodigoRepresentante] = useState("");
-  const [passwordRepresentante, setPasswordRepresentante] = useState("");
   const [enviando, setEnviando] = useState(false);
-
-  const representanteIniciado = Boolean(
-    nombreRepresentante.trim() ||
-    telefonoRepresentante.trim() ||
-    codigoRepresentante.trim() ||
-    passwordRepresentante,
-  );
-  const representanteCompleto = Boolean(
-    nombreRepresentante.trim() &&
-    nombreRepresentante.trim().length <= 120 &&
-    telefonoRepresentante.trim() &&
-    telefonoRepresentante.trim().length <= 20 &&
-    codigoRepresentante.trim() &&
-    codigoRepresentante.trim().length <= 10 &&
-    passwordRepresentante.length >= 6,
-  );
   const esValido = Boolean(
-    nombreGrupo.trim() &&
-      nombreGrupo.trim().length <= 20 &&
-      (!representanteIniciado || representanteCompleto),
+    nombreGrupo.trim() && nombreGrupo.trim().length <= 20,
   );
 
   const handleCrear = async () => {
     if (!esValido) {
-      Alert.alert(
-        "Faltan datos",
-        !nombreGrupo.trim()
-          ? "Completa el nombre del grupo."
-          : "Para crear un representante completa nombre, teléfono, código y una contraseña de al menos 6 caracteres; también puedes dejar todos esos campos vacíos.",
-      );
+      Alert.alert("Faltan datos", "Completa el nombre del grupo.");
       return;
     }
     setEnviando(true);
     try {
-      await gruposService.crear({
+      const grupo = await gruposService.crear({
         nombre: nombreGrupo.trim(),
         lineas: [],
-        representante: representanteCompleto
-          ? {
-              nombre: nombreRepresentante.trim(),
-              telefono: telefonoRepresentante.trim(),
-              code: codigoRepresentante.trim(),
-              password: passwordRepresentante,
-            }
-          : undefined,
       });
-      router.back();
+      router.replace({
+        pathname: "/admin/grupos/[grupoId]",
+        params: { grupoId: grupo.id },
+      });
     } catch (e) {
       Alert.alert(
         "Error",
@@ -81,7 +49,10 @@ export default function CrearGrupoScreen() {
       style={styles.container}
       contentContainerStyle={{ padding: 16 }}
     >
-      <TouchableOpacity onPress={() => router.back()} accessibilityRole="button">
+      <TouchableOpacity
+        onPress={() => router.back()}
+        accessibilityRole="button"
+      >
         <Text style={styles.backLink}>Volver a grupos</Text>
       </TouchableOpacity>
       <Text style={styles.title}>Crear grupo</Text>
@@ -93,45 +64,6 @@ export default function CrearGrupoScreen() {
         onChangeText={setNombreGrupo}
         placeholder="Ej: Flota Centro"
         maxLength={20}
-      />
-
-      <Text style={styles.sectionTitle}>Representante (opcional)</Text>
-
-      <Text style={styles.label}>Nombre</Text>
-      <TextInput
-        style={styles.input}
-        value={nombreRepresentante}
-        onChangeText={setNombreRepresentante}
-        placeholder="Nombre completo"
-        maxLength={120}
-      />
-
-      <Text style={styles.label}>Teléfono</Text>
-      <TextInput
-        style={styles.input}
-        value={telefonoRepresentante}
-        onChangeText={setTelefonoRepresentante}
-        placeholder="Ej: 8888-8888"
-        keyboardType="phone-pad"
-        maxLength={20}
-      />
-
-      <Text style={styles.label}>Código de acceso</Text>
-      <TextInput
-        style={styles.input}
-        value={codigoRepresentante}
-        onChangeText={setCodigoRepresentante}
-        placeholder="Máximo 10 caracteres"
-        maxLength={10}
-        autoCapitalize="none"
-      />
-
-      <Text style={styles.label}>Contraseña inicial</Text>
-      <TextInput
-        style={styles.input}
-        value={passwordRepresentante}
-        onChangeText={setPasswordRepresentante}
-        secureTextEntry
       />
 
       <TouchableOpacity

@@ -2,13 +2,13 @@ import { gruposService } from "@/services/gruposService";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -22,11 +22,11 @@ export default function CrearConductorScreen() {
   const [guardando, setGuardando] = useState(false);
   const valido = Boolean(
     nombre.trim() &&
-      nombre.trim().length <= 120 &&
-      codigo.trim() &&
-      codigo.trim().length <= 10 &&
-      telefono.trim().length <= 20 &&
-      password.length >= 6,
+    nombre.trim().length <= 120 &&
+    codigo.trim() &&
+    codigo.trim().length <= 10 &&
+    telefono.trim().length <= 20 &&
+    password.length >= 6,
   );
 
   const crear = async () => {
@@ -56,7 +56,10 @@ export default function CrearConductorScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.content}>
-        <TouchableOpacity onPress={() => router.back()} accessibilityRole="button">
+        <TouchableOpacity
+          onPress={() => router.back()}
+          accessibilityRole="button"
+        >
           <Text style={styles.back}>Volver al grupo</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Nuevo conductor</Text>

@@ -447,7 +447,8 @@ export default function CrearRutaScreen() {
           <View>
             <Text style={styles.sectionTitle}>Puntos de control</Text>
             <Text style={styles.helper}>
-              Longitud, latitud y radio. El orden define la secuencia de la ruta.
+              Longitud, latitud y radio. El orden define la secuencia de la
+              ruta.
             </Text>
           </View>
           <TouchableOpacity

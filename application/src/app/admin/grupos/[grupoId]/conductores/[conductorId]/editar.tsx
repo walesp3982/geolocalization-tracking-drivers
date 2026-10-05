@@ -3,14 +3,13 @@ import { ConductorDetalle } from "@/types/grupo";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -36,7 +35,10 @@ export default function EditarConductorScreen() {
         setTelefono(data.telefono ?? "");
       })
       .catch((error: unknown) => {
-        Alert.alert("Error", error instanceof Error ? error.message : "No se pudo cargar");
+        Alert.alert(
+          "Error",
+          error instanceof Error ? error.message : "No se pudo cargar",
+        );
       })
       .finally(() => setCargando(false));
   }, [grupoId, conductorId]);
@@ -48,7 +50,8 @@ export default function EditarConductorScreen() {
       !nombre.trim() ||
       nombre.trim().length > 120 ||
       telefono.trim().length > 20
-    ) return;
+    )
+      return;
     setGuardando(true);
     try {
       await gruposService.editarConductor(grupoId, conductorId, {
@@ -57,7 +60,10 @@ export default function EditarConductorScreen() {
       });
       router.back();
     } catch (error) {
-      Alert.alert("No se pudo guardar", error instanceof Error ? error.message : "Intenta nuevamente.");
+      Alert.alert(
+        "No se pudo guardar",
+        error instanceof Error ? error.message : "Intenta nuevamente.",
+      );
     } finally {
       setGuardando(false);
     }
@@ -82,12 +88,19 @@ export default function EditarConductorScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.content}>
-        <TouchableOpacity onPress={() => router.back()} accessibilityRole="button">
+        <TouchableOpacity
+          onPress={() => router.back()}
+          accessibilityRole="button"
+        >
           <Text style={styles.back}>Cancelar</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Editar conductor</Text>
         <Text style={styles.label}>Código de acceso</Text>
-        <TextInput style={[styles.input, styles.readonly]} value={conductor.code} editable={false} />
+        <TextInput
+          style={[styles.input, styles.readonly]}
+          value={conductor.code}
+          editable={false}
+        />
         <Text style={styles.label}>Nombre</Text>
         <TextInput
           style={styles.input}
@@ -103,13 +116,31 @@ export default function EditarConductorScreen() {
           keyboardType="phone-pad"
           maxLength={20}
         />
-        <Text style={styles.note}>El código y la contraseña no se modifican desde esta pantalla.</Text>
+        <Text style={styles.note}>
+          El código y la contraseña no se modifican desde esta pantalla.
+        </Text>
         <TouchableOpacity
-          style={[styles.button, (!nombre.trim() || nombre.trim().length > 120 || telefono.trim().length > 20 || guardando) && styles.disabled]}
+          style={[
+            styles.button,
+            (!nombre.trim() ||
+              nombre.trim().length > 120 ||
+              telefono.trim().length > 20 ||
+              guardando) &&
+              styles.disabled,
+          ]}
           onPress={guardar}
-          disabled={!nombre.trim() || nombre.trim().length > 120 || telefono.trim().length > 20 || guardando}
+          disabled={
+            !nombre.trim() ||
+            nombre.trim().length > 120 ||
+            telefono.trim().length > 20 ||
+            guardando
+          }
         >
-          {guardando ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Guardar cambios</Text>}
+          {guardando ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Guardar cambios</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -121,12 +152,37 @@ const styles = StyleSheet.create({
   center: { alignItems: "center", flex: 1, justifyContent: "center" },
   content: { padding: 18 },
   back: { color: "#2563eb", fontWeight: "600", marginBottom: 12 },
-  title: { color: "#111827", fontSize: 23, fontWeight: "700", marginBottom: 10 },
-  label: { color: "#374151", fontSize: 13, fontWeight: "600", marginTop: 12, marginBottom: 5 },
-  input: { borderColor: "#d1d5db", borderRadius: 7, borderWidth: 1, color: "#111827", fontSize: 15, paddingHorizontal: 12, paddingVertical: 11 },
+  title: {
+    color: "#111827",
+    fontSize: 23,
+    fontWeight: "700",
+    marginBottom: 10,
+  },
+  label: {
+    color: "#374151",
+    fontSize: 13,
+    fontWeight: "600",
+    marginTop: 12,
+    marginBottom: 5,
+  },
+  input: {
+    borderColor: "#d1d5db",
+    borderRadius: 7,
+    borderWidth: 1,
+    color: "#111827",
+    fontSize: 15,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+  },
   readonly: { backgroundColor: "#f3f4f6", color: "#6b7280" },
   note: { color: "#6b7280", fontSize: 12, marginTop: 12 },
-  button: { alignItems: "center", backgroundColor: "#1d4ed8", borderRadius: 7, marginTop: 20, padding: 14 },
+  button: {
+    alignItems: "center",
+    backgroundColor: "#1d4ed8",
+    borderRadius: 7,
+    marginTop: 20,
+    padding: 14,
+  },
   disabled: { opacity: 0.55 },
   buttonText: { color: "#fff", fontWeight: "700" },
 });
