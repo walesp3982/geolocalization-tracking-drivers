@@ -2,46 +2,63 @@ import { useCallback, useRef, useState } from "react";
 
 export function useWebSocket(url: string) {
   const socketRef = useRef<WebSocket | null>(null);
-
+  const messageHandlerRef = useRef<(message: unknown) => void>(() => undefined);
+  const closeHandlerRef = useRef<() => void>(() => undefined);
   const [isConnected, setIsConnected] = useState(false);
 
+  const setMessageHandler = useCallback(
+    (handler: (message: unknown) => void) => {
+      messageHandlerRef.current = handler;
+    },
+    [],
+  );
+
+  const setCloseHandler = useCallback((handler: () => void) => {
+    closeHandlerRef.current = handler;
+  }, []);
+
   const startWebSocket = useCallback(() => {
-    // Evitar crear otra conexión si ya existe
-    if (
-      socketRef.current &&
-      (socketRef.current.readyState === WebSocket.OPEN ||
-        socketRef.current.readyState === WebSocket.CONNECTING)
-    ) {
-      console.warn("WebSocket ya está conectado o conectándose");
-      return;
-    }
-
-    const socket = new WebSocket(url);
-
-    socketRef.current = socket;
-
-    socket.onopen = () => {
-      console.log("WebSocket conectado");
-      setIsConnected(true);
-    };
-
-    socket.onmessage = (event) => {
-      console.log("Mensaje recibido:", event.data);
-    };
-
-    socket.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
-
-    socket.onclose = () => {
-      console.log("WebSocket cerrado");
-      setIsConnected(false);
-
-      // Solo limpiar si este sigue siendo el socket actual
-      if (socketRef.current === socket) {
-        socketRef.current = null;
+    return new Promise<void>((resolve, reject) => {
+      const currentSocket = socketRef.current;
+      if (currentSocket?.readyState === WebSocket.OPEN) {
+        resolve();
+        return;
       }
-    };
+      if (currentSocket?.readyState === WebSocket.CONNECTING) {
+        reject(new Error("El WebSocket todavía se está conectando."));
+        return;
+      }
+
+      const socket = new WebSocket(url);
+      socketRef.current = socket;
+      let settled = false;
+
+      socket.onopen = () => {
+        setIsConnected(true);
+        settled = true;
+        resolve();
+      };
+      socket.onmessage = (event) => {
+        try {
+          messageHandlerRef.current(JSON.parse(String(event.data)) as unknown);
+        } catch {
+          messageHandlerRef.current(event.data);
+        }
+      };
+      socket.onerror = () => {
+        if (!settled) {
+          settled = true;
+          reject(new Error("No se pudo conectar al servidor de tracking."));
+        }
+      };
+      socket.onclose = () => {
+        setIsConnected(false);
+        if (socketRef.current === socket) {
+          socketRef.current = null;
+        }
+        closeHandlerRef.current();
+      };
+    });
   }, [url]);
 
   const closeWebSocket = useCallback(() => {
@@ -56,15 +73,15 @@ export function useWebSocket(url: string) {
     setIsConnected(false);
   }, []);
 
-  const sendMessage = useCallback((data: unknown) => {
+  const sendMessage = useCallback((data: unknown): boolean => {
     const socket = socketRef.current;
 
     if (!socket || socket.readyState !== WebSocket.OPEN) {
-      console.warn("WebSocket no está conectado");
-      return;
+      return false;
     }
 
     socket.send(JSON.stringify(data));
+    return true;
   }, []);
 
   return {
@@ -72,5 +89,7 @@ export function useWebSocket(url: string) {
     startWebSocket,
     closeWebSocket,
     sendMessage,
+    setMessageHandler,
+    setCloseHandler,
   };
 }

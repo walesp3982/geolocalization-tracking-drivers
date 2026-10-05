@@ -1,65 +1,60 @@
+import { gruposService } from "@/services/gruposService";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { gruposService } from "@/services/gruposService";
 
 export default function CrearGrupoScreen() {
   const router = useRouter();
   const [nombreGrupo, setNombreGrupo] = useState("");
-  const [nombreRepresentante, setNombreRepresentante] = useState("");
-  const [telefonoRepresentante, setTelefonoRepresentante] = useState("");
-  const [emailRepresentante, setEmailRepresentante] = useState("");
   const [enviando, setEnviando] = useState(false);
-
-  // El representante es opcional: se puede crear el grupo y asignarlo después.
-  // Pero si se llena uno de sus campos, se piden ambos (nombre y teléfono) para
-  // no guardar un representante a medias.
-  const representanteIniciado = nombreRepresentante.trim() || telefonoRepresentante.trim();
-  const representanteCompleto = nombreRepresentante.trim() && telefonoRepresentante.trim();
-  const esValido = nombreGrupo.trim() && (!representanteIniciado || representanteCompleto);
+  const esValido = Boolean(
+    nombreGrupo.trim() && nombreGrupo.trim().length <= 20,
+  );
 
   const handleCrear = async () => {
     if (!esValido) {
-      Alert.alert(
-        "Faltan datos",
-        !nombreGrupo.trim()
-          ? "Completa el nombre del grupo."
-          : "Si vas a asignar representante, completa su nombre y teléfono (o deja ambos vacíos)."
-      );
+      Alert.alert("Faltan datos", "Completa el nombre del grupo.");
       return;
     }
     setEnviando(true);
     try {
-      await gruposService.crear({
+      const grupo = await gruposService.crear({
         nombre: nombreGrupo.trim(),
         lineas: [],
-        representante: representanteCompleto
-          ? {
-              nombre: nombreRepresentante.trim(),
-              telefono: telefonoRepresentante.trim(),
-              email: emailRepresentante.trim() || undefined,
-            }
-          : undefined,
       });
-      router.back();
+      router.replace({
+        pathname: "/admin/grupos/[grupoId]",
+        params: { grupoId: grupo.id },
+      });
     } catch (e) {
-      Alert.alert("Error", e instanceof Error ? e.message : "No se pudo crear el grupo");
+      Alert.alert(
+        "Error",
+        e instanceof Error ? e.message : "No se pudo crear el grupo",
+      );
     } finally {
       setEnviando(false);
     }
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ padding: 16 }}
+    >
+      <TouchableOpacity
+        onPress={() => router.back()}
+        accessibilityRole="button"
+      >
+        <Text style={styles.backLink}>Volver a grupos</Text>
+      </TouchableOpacity>
       <Text style={styles.title}>Crear grupo</Text>
 
       <Text style={styles.label}>Nombre del grupo</Text>
@@ -68,39 +63,14 @@ export default function CrearGrupoScreen() {
         value={nombreGrupo}
         onChangeText={setNombreGrupo}
         placeholder="Ej: Flota Centro"
-      />
-
-      <Text style={styles.sectionTitle}>Representante (opcional)</Text>
-
-      <Text style={styles.label}>Nombre</Text>
-      <TextInput
-        style={styles.input}
-        value={nombreRepresentante}
-        onChangeText={setNombreRepresentante}
-        placeholder="Nombre completo"
-      />
-
-      <Text style={styles.label}>Teléfono</Text>
-      <TextInput
-        style={styles.input}
-        value={telefonoRepresentante}
-        onChangeText={setTelefonoRepresentante}
-        placeholder="Ej: 8888-8888"
-        keyboardType="phone-pad"
-      />
-
-      <Text style={styles.label}>Email (opcional)</Text>
-      <TextInput
-        style={styles.input}
-        value={emailRepresentante}
-        onChangeText={setEmailRepresentante}
-        placeholder="correo@ejemplo.com"
-        keyboardType="email-address"
-        autoCapitalize="none"
+        maxLength={20}
       />
 
       <TouchableOpacity
-        style={[styles.button, (!esValido || enviando) && styles.buttonDisabled]}
+        style={[
+          styles.button,
+          (!esValido || enviando) && styles.buttonDisabled,
+        ]}
         onPress={handleCrear}
         disabled={!esValido || enviando}
       >
@@ -117,7 +87,13 @@ export default function CrearGrupoScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   title: { fontSize: 22, fontWeight: "700", marginBottom: 20 },
-  sectionTitle: { fontSize: 16, fontWeight: "700", marginTop: 12, marginBottom: 8 },
+  backLink: { color: "#2563eb", fontWeight: "600", marginBottom: 12 },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    marginTop: 12,
+    marginBottom: 8,
+  },
   label: { fontSize: 13, color: "#4b5563", marginBottom: 4, marginTop: 10 },
   input: {
     borderWidth: 1,

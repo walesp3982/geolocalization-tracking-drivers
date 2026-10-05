@@ -22,6 +22,9 @@
     },
 
     "ruff.lint.enable": true,
-    "ruff.organizeImports": true
+    "ruff.organizeImports": true,
+    "chat.tools.terminal.autoApprove": {
+      "npx tsc": true
+    }
   },
 }

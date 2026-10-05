@@ -2,22 +2,58 @@ import DriverTrackingControls from "@/components/DriverButtonTracking";
 import { ThemedView } from "@/components/themed-view";
 import { useHeading } from "@/hooks/use-heading";
 import { useMapOrientation } from "@/hooks/use-map-orientation";
+import { apiRequest } from "@/services/api";
 import { useNetworkState } from "expo-network";
 import { SymbolView } from "expo-symbols";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Dimensions,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
-import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, {
+    Circle,
+    Marker,
+    Polyline,
+    PROVIDER_GOOGLE,
+} from "react-native-maps";
 
 interface PointerColors {
   bgColor: string;
   borderColor: string;
+}
+
+interface RoutePoint {
+  latitude: number;
+  longitude: number;
+}
+
+interface RouteControlPoint {
+  id: number | string;
+  coordinate: RoutePoint;
+  radius: number;
+  relativeNumber?: number | null;
+}
+
+interface RouteAssignment {
+  id_asignacion?: number;
+  id_ruta?: number;
+  id_conductor?: number;
+  numero_ruta?: string;
+  lugar_inicial?: string;
+  lugar_final?: string;
+  tiempo_estimado?: number | null;
+  fecha_hora_inicio?: string | null;
+  fecha_hora_comienzo?: string | null;
+  fecha_hora_fin?: string | null;
+  estado_tracking?: string | null;
+  puntos_control_completados?: number[];
+  routeCoordinates: RoutePoint[];
+  controlPoints: RouteControlPoint[];
 }
 
 const pointerActive: PointerColors = {
@@ -29,6 +65,202 @@ const pointerInactive: PointerColors = {
   bgColor: "#f7d653",
   borderColor: "#ffca1c",
 };
+
+function toNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+function extractCoordsFromGeometry(input: unknown): RoutePoint[] {
+  if (!input || typeof input !== "object") {
+    return [];
+  }
+
+  const source = input as Record<string, unknown>;
+  const geometry = source.geometry as Record<string, unknown> | undefined;
+  const line = source.line as Record<string, unknown> | undefined;
+  const ruta = source.ruta as Record<string, unknown> | undefined;
+  const rutaLine = ruta?.line as Record<string, unknown> | undefined;
+  const rutaGeometry = ruta?.geometry as Record<string, unknown> | undefined;
+
+  const coordinates = Array.isArray(source.coordinates)
+    ? source.coordinates
+    : Array.isArray(geometry?.coordinates)
+      ? geometry.coordinates
+      : Array.isArray(line?.coordinates)
+        ? line.coordinates
+        : Array.isArray(rutaLine?.coordinates)
+          ? rutaLine.coordinates
+          : Array.isArray(rutaGeometry?.coordinates)
+            ? rutaGeometry.coordinates
+            : [];
+
+  if (!Array.isArray(coordinates)) {
+    return [];
+  }
+
+  return coordinates.flatMap((point) => {
+    if (!Array.isArray(point) || point.length < 2) {
+      return [];
+    }
+
+    const longitude = toNumber(point[0]);
+    const latitude = toNumber(point[1]);
+
+    if (longitude === null || latitude === null) {
+      return [];
+    }
+
+    return [{ latitude, longitude }];
+  });
+}
+
+function extractPointCoordinate(input: unknown): RoutePoint | null {
+  if (!input || typeof input !== "object") {
+    return null;
+  }
+
+  const source = input as Record<string, unknown>;
+  const point =
+    source.ubicacion ?? source.geometry ?? source.location ?? source;
+  const coordinates = Array.isArray(point)
+    ? point
+    : point && typeof point === "object"
+      ? (point as Record<string, unknown>).coordinates
+      : null;
+
+  if (!Array.isArray(coordinates) || coordinates.length < 2) {
+    return null;
+  }
+
+  const longitude = toNumber(coordinates[0]);
+  const latitude = toNumber(coordinates[1]);
+  if (longitude === null || latitude === null) {
+    return null;
+  }
+
+  return { latitude, longitude };
+}
+
+function normalizeRouteAssignment(raw: unknown): RouteAssignment | null {
+  if (!raw) {
+    return null;
+  }
+
+  const items = Array.isArray(raw)
+    ? raw
+    : Array.isArray((raw as Record<string, unknown>)?.asignaciones)
+      ? ((raw as Record<string, unknown>).asignaciones as unknown[])
+      : [raw];
+
+  if (!items.length) {
+    return null;
+  }
+
+  const ordered = [...items].sort((left, right) => {
+    const leftDate = new Date(
+      (left as Record<string, unknown>)?.fecha_hora_inicio as string | number,
+    ).getTime();
+    const rightDate = new Date(
+      (right as Record<string, unknown>)?.fecha_hora_inicio as string | number,
+    ).getTime();
+    return Number.isNaN(leftDate) || Number.isNaN(rightDate)
+      ? 0
+      : leftDate - rightDate;
+  });
+
+  const nextAssignment = ordered[0] as Record<string, unknown> | undefined;
+  if (!nextAssignment) {
+    return null;
+  }
+
+  const route =
+    (nextAssignment.ruta as Record<string, unknown>) ??
+    (nextAssignment.route as Record<string, unknown>) ??
+    nextAssignment;
+
+  const routeCoordinates = extractCoordsFromGeometry(
+    route?.line ?? route?.geometry ?? route?.coordinates ?? nextAssignment,
+  );
+  const controlPoints = Array.isArray(route?.puntos_control)
+    ? route.puntos_control.flatMap((rawPoint, index) => {
+        if (!rawPoint || typeof rawPoint !== "object") {
+          return [];
+        }
+
+        const point = rawPoint as Record<string, unknown>;
+        const coordinate = extractPointCoordinate(point);
+        const radius = toNumber(point.radio);
+
+        if (!coordinate || radius === null || radius <= 0) {
+          return [];
+        }
+
+        return [
+          {
+            id:
+              toNumber(point.id_punto_control) ??
+              toNumber(point.n_puntos_relativo) ??
+              index,
+            coordinate,
+            radius,
+            relativeNumber: toNumber(point.n_puntos_relativo),
+          },
+        ];
+      })
+    : [];
+
+  return {
+    id_asignacion: toNumber(nextAssignment.id_asignacion) ?? undefined,
+    id_ruta:
+      toNumber(nextAssignment.id_ruta) ?? toNumber(route?.id_ruta) ?? undefined,
+    id_conductor: toNumber(nextAssignment.id_conductor) ?? undefined,
+    numero_ruta:
+      (route?.numero_ruta as string | undefined) ??
+      (nextAssignment.numero_ruta as string | undefined) ??
+      undefined,
+    lugar_inicial:
+      (route?.lugar_inicial as string | undefined) ??
+      (route?.lugar_initial as string | undefined) ??
+      undefined,
+    lugar_final: (route?.lugar_final as string | undefined) ?? undefined,
+    tiempo_estimado:
+      toNumber(route?.tiempo_estimado) ??
+      toNumber(nextAssignment.tiempo_estimado) ??
+      null,
+    fecha_hora_inicio:
+      (nextAssignment.fecha_hora_inicio as string | undefined) ?? null,
+    fecha_hora_comienzo:
+      (nextAssignment.fecha_hora_comienzo as string | undefined) ?? null,
+    fecha_hora_fin:
+      (nextAssignment.fecha_hora_fin as string | undefined) ?? null,
+    estado_tracking:
+      (nextAssignment.estado_tracking as string | undefined) ?? null,
+    puntos_control_completados: Array.isArray(
+      nextAssignment.puntos_control_completados,
+    )
+      ? (nextAssignment.puntos_control_completados as unknown[]).flatMap(
+          (checkpointId) => {
+            const parsedId = toNumber(checkpointId);
+            return parsedId === null ? [] : [parsedId];
+          },
+        )
+      : [],
+    routeCoordinates,
+    controlPoints,
+  };
+}
+
 export default function DriverMapView() {
   const heading = useHeading(true);
   const mapOrientation = useMapOrientation({
@@ -37,6 +269,11 @@ export default function DriverMapView() {
     location: heading.location,
   });
   const [isTrackingActive, setIsTrackingActive] = useState(false);
+  const [assignment, setAssignment] = useState<RouteAssignment | null>(null);
+  const [reachedCheckpointIds, setReachedCheckpointIds] = useState<number[]>(
+    [],
+  );
+  const [isLoadingAssignment, setIsLoadingAssignment] = useState(false);
   const networkState = useNetworkState();
   const [mapAttempt, setMapAttempt] = useState(0);
   const isOffline =
@@ -69,6 +306,40 @@ export default function DriverMapView() {
     wasOffline.current = isOffline;
   }, [isOffline]);
 
+  const loadAssignment = async () => {
+    setIsLoadingAssignment(true);
+
+    try {
+      const today = new Date();
+      const startOfDay = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+      );
+      const startOfTomorrow = new Date(startOfDay);
+      startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+      const query = new URLSearchParams({
+        desde: startOfDay.toISOString(),
+        hasta: startOfTomorrow.toISOString(),
+      });
+      const data = await apiRequest<unknown>(
+        `/conductor/asignacion?${query.toString()}`,
+      );
+      const normalized = normalizeRouteAssignment(data);
+      setAssignment(normalized);
+      setReachedCheckpointIds(normalized?.puntos_control_completados ?? []);
+    } catch (error) {
+      setAssignment(null);
+      console.warn("No se pudo cargar la asignación activa:", error);
+    } finally {
+      setIsLoadingAssignment(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadAssignment();
+  }, []);
+
   if (!heading.location) {
     return (
       <ThemedView style={[styles.container, styles.loadingContainer]}>
@@ -90,8 +361,63 @@ export default function DriverMapView() {
 
   const currentLocation = heading.location;
 
+  const hasAssignment = Boolean(
+    assignment && assignment.routeCoordinates.length > 0,
+  );
+  const assignmentIsToday = Boolean(
+    assignment?.fecha_hora_inicio &&
+    new Date(assignment.fecha_hora_inicio).toDateString() ===
+      new Date().toDateString(),
+  );
+
   return (
     <ThemedView style={styles.container}>
+      <View
+        style={[
+          styles.assignmentHeader,
+          hasAssignment
+            ? styles.assignmentHeaderActive
+            : styles.assignmentHeaderInactive,
+        ]}
+      >
+        <View style={styles.assignmentHeaderTextWrap}>
+          <Text style={styles.assignmentHeaderLabel}>
+            {hasAssignment ? "Ruta asignada" : "Sin ruta asignada"}
+          </Text>
+          {hasAssignment ? (
+            <Text style={styles.assignmentHeaderMeta}>
+              {assignment?.numero_ruta
+                ? `Ruta ${assignment.numero_ruta}`
+                : `Asignación ${assignment?.id_asignacion ?? "-"}`}
+            </Text>
+          ) : (
+            <Text style={styles.assignmentHeaderMeta}>
+              Busca una asignación disponible
+            </Text>
+          )}
+        </View>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Refrescar asignación"
+          style={styles.refreshButton}
+          onPress={() => {
+            void loadAssignment();
+          }}
+          disabled={isLoadingAssignment}
+        >
+          <SymbolView
+            name={{
+              ios: "arrow.clockwise",
+              android: "refresh",
+              web: "refresh",
+            }}
+            size={18}
+            tintColor="#ffffff"
+          />
+        </Pressable>
+      </View>
+
       <MapView
         key={mapAttempt}
         ref={mapOrientation.mapRef}
@@ -123,6 +449,53 @@ export default function DriverMapView() {
           if (details.isGesture) mapOrientation.stopFollowing();
         }}
       >
+        {assignment && assignment.routeCoordinates.length > 1 && (
+          <Polyline
+            coordinates={assignment.routeCoordinates}
+            strokeColor="#1d4ed8"
+            strokeWidth={5}
+            lineCap="round"
+            lineJoin="round"
+          />
+        )}
+
+        {assignment?.controlPoints.map((point) => {
+          const reached = reachedCheckpointIds.includes(Number(point.id));
+          return (
+            <Fragment key={point.id}>
+              <Circle
+                center={point.coordinate}
+                radius={point.radius}
+                strokeColor={reached ? "#16834a" : "#4C1D95"}
+                strokeWidth={3}
+                fillColor={
+                  reached
+                    ? "rgba(22, 131, 74, 0.3)"
+                    : "rgba(109, 40, 217, 0.32)"
+                }
+              />
+              <Marker
+                coordinate={point.coordinate}
+                anchor={{ x: 0.5, y: 0.5 }}
+                tracksViewChanges
+                accessibilityLabel={`Punto de control ${point.relativeNumber ?? point.id}`}
+              >
+                <View style={styles.controlPointMarker}>
+                  <SymbolView
+                    name={{
+                      ios: "flag.checkered",
+                      android: "flag",
+                      web: "flag",
+                    }}
+                    size={16}
+                    tintColor={reached ? "#b6f3ce" : "#FFFFFF"}
+                  />
+                </View>
+              </Marker>
+            </Fragment>
+          );
+        })}
+
         <Marker
           key={isTrackingActive ? "marker-active" : "marker-inactive"}
           coordinate={{
@@ -245,7 +618,27 @@ export default function DriverMapView() {
         </View>
       )}
 
-      <DriverTrackingControls changeIsTrackingActive={setIsTrackingActive} />
+      <DriverTrackingControls
+        changeIsTrackingActive={setIsTrackingActive}
+        assignment={assignment}
+        canStart={assignmentIsToday && hasAssignment}
+        onCheckpointReached={(checkpointId) => {
+          setReachedCheckpointIds((current) =>
+            current.includes(checkpointId)
+              ? current
+              : [...current, checkpointId],
+          );
+        }}
+        onTrackingFinished={(result) => {
+          Alert.alert(
+            result.success ? "Recorrido completado" : "Recorrido incompleto",
+            result.success
+              ? "Se alcanzaron todos los puntos de control."
+              : "El tracking finalizó antes de completar todos los puntos.",
+          );
+          void loadAssignment();
+        }}
+      />
     </ThemedView>
   );
 }
@@ -263,9 +656,54 @@ const styles = StyleSheet.create({
     color: "#17324D",
     fontSize: 15,
   },
+  assignmentHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 54,
+    paddingBottom: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.18)",
+  },
+  assignmentHeaderActive: {
+    backgroundColor: "rgba(30, 64, 175, 0.9)",
+  },
+  assignmentHeaderInactive: {
+    backgroundColor: "rgba(107, 114, 128, 0.88)",
+  },
+  assignmentHeaderTextWrap: {
+    flex: 1,
+    marginRight: 12,
+  },
+  assignmentHeaderLabel: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  assignmentHeaderMeta: {
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 12,
+  },
+  refreshButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.25)",
+  },
   mapControls: {
     position: "absolute",
-    top: 16,
+    top: 96,
     left: 16,
     zIndex: 10,
   },
@@ -298,6 +736,21 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.28,
     shadowRadius: 5,
+  },
+  controlPointMarker: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    backgroundColor: "#6D28D9",
+    elevation: 6,
+    shadowColor: "#2E1065",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 3,
   },
   notice: {
     maxWidth: 220,

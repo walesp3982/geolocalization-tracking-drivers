@@ -1,3 +1,4 @@
+import { useAuth } from "@/context/auth-context";
 import { useState } from "react";
 import {
   Alert,
@@ -10,31 +11,25 @@ import {
   View,
 } from "react-native";
 
-type Rol = "chofer" | "admin";
-
-interface LoginScreenProps {
-  onLoginExitoso: (rol: Rol) => void;
-}
-
-// Credenciales de demo (hardcodeadas, como ya tenían para "chofer").
-// TODO: cuando el backend tenga /auth real, reemplazar esta validación
-// por una llamada al endpoint de login.
-const CREDENCIALES: Record<string, { password: string; rol: Rol }> = {
-  chofer: { password: "1234", rol: "chofer" },
-  admin: { password: "admin123", rol: "admin" },
-};
-
-export default function LoginScreen({ onLoginExitoso }: LoginScreenProps) {
+export default function LoginScreen() {
+  const { login } = useAuth();
   const [usuario, setUsuario] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleIngresar = () => {
-    const credencial = CREDENCIALES[usuario.trim().toLowerCase()];
+  const handleIngresar = async () => {
+    if (!usuario.trim() || !password.trim()) {
+      Alert.alert("Error", "Completa usuario y contraseña.");
+      return;
+    }
 
-    if (credencial && credencial.password === password) {
-      onLoginExitoso(credencial.rol);
-    } else {
-      Alert.alert("Error", "Usuario o contraseña incorrectos");
+    setLoading(true);
+    const result = await login(usuario.trim(), password);
+    setLoading(false);
+
+    if (!result.success) {
+      Alert.alert("Error", result.message ?? "Credenciales inválidas.");
+      return;
     }
   };
 
@@ -53,7 +48,7 @@ export default function LoginScreen({ onLoginExitoso }: LoginScreenProps) {
 
           <TextInput
             style={styles.input}
-            placeholder="Usuario"
+            placeholder="Usuario o identificador"
             placeholderTextColor="#9ca3af"
             value={usuario}
             onChangeText={setUsuario}
@@ -71,13 +66,19 @@ export default function LoginScreen({ onLoginExitoso }: LoginScreenProps) {
             autoCapitalize="none"
           />
 
-          <TouchableOpacity style={styles.button} onPress={handleIngresar}>
-            <Text style={styles.buttonText}>INGRESAR</Text>
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleIngresar}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? "INGRESANDO..." : "INGRESAR"}
+            </Text>
           </TouchableOpacity>
 
           <Text style={styles.demoText}>
-            (Demo: usuario "chofer" / contraseña "1234"{"\n"}o usuario "admin" /
-            contraseña "admin123")
+            Usa las credenciales del backend. El token se guarda en SecureStore
+            y se valida al iniciar la app.
           </Text>
         </View>
       </View>
@@ -129,6 +130,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center",
     marginTop: 4,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   buttonText: {
     color: "#fff",

@@ -116,7 +116,10 @@ class Ruta(Base):
         "AsignacionRuta", back_populates="ruta"
     )
 
-    puntos_control: Mapped[list[PuntosControl]] = relationship(back_populates="ruta")
+    puntos_control: Mapped[list[PuntosControl]] = relationship(
+        back_populates="ruta",
+        order_by="PuntosControl.n_puntos_relativo, PuntosControl.id_punto_control",
+    )
 
     def __init__(
         self,
@@ -183,6 +186,7 @@ class AsignacionRuta(Base):
     fecha_hora_fin: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    estado_tracking: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
     ruta: Mapped[Ruta] = relationship("Ruta", back_populates="asignaciones")
     conductor: Mapped[Conductor] = relationship(back_populates="asignaciones")
@@ -193,7 +197,7 @@ class AsignacionRuta(Base):
     ) -> None:
         self.id_conductor = id_conductor
         self.id_ruta = id_ruta
-        self.fecha_hora_inicio = self.fecha_hora_inicio
+        self.fecha_hora_inicio = datetime_inicio
 
     @property
     def duracion(self) -> timedelta | None:
@@ -212,11 +216,19 @@ class Recorrido(Base):
     id_recorrido: Mapped[int] = mapped_column(
         Integer, ForeignKey("asignacion_ruta.id_asignacion"), nullable=False
     )
+    sample_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True, unique=True
+    )
     ubicacion: Mapped[WKBElement] = mapped_column(
         Geometry(geometry_type="POINT", srid=4326, spatial_index=True), nullable=False
     )
     # Diagrama dice TIME; recomiendo DateTime para no perder la fecha del punto.
-    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    timestamp_frontend: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    timestamp_backend: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
 
     asignacion: Mapped[AsignacionRuta] = relationship(back_populates="recorridos")
 

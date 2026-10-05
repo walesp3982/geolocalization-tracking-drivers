@@ -1,70 +1,133 @@
 import useDriverTracking from "@/hooks/use-driver-tracking";
-import * as Location from "expo-location";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
+interface RouteAssignmentMeta {
+  id_asignacion?: number;
+  id_ruta?: number;
+  numero_ruta?: string;
+  lugar_inicial?: string;
+  lugar_final?: string;
+  tiempo_estimado?: number | null;
+  fecha_hora_inicio?: string | null;
+  fecha_hora_comienzo?: string | null;
+  fecha_hora_fin?: string | null;
+  estado_tracking?: string | null;
+}
 
 interface DriverButtonProps {
   changeIsTrackingActive: (active: boolean) => void;
+  assignment?: RouteAssignmentMeta | null;
+  canStart: boolean;
+  onCheckpointReached: (checkpointId: number) => void;
+  onTrackingFinished: (result: { success: boolean; status?: string }) => void;
 }
 export default function DriverButtonTracking({
   changeIsTrackingActive,
+  assignment,
+  canStart,
+  onCheckpointReached,
+  onTrackingFinished,
 }: DriverButtonProps) {
-  const location = useDriverTracking();
-
-  // Estados para la selección de ruta y sentido
-  const locationSubscription = useRef<Location.LocationSubscription | null>(
-    null,
+  const location = useDriverTracking(
+    assignment?.id_asignacion,
+    onCheckpointReached,
+    onTrackingFinished,
   );
-  const isMounted = useRef<boolean>(true);
 
   useEffect(() => {
-    console.log("location.running", location.running);
     changeIsTrackingActive(location.running);
-
-    return () => {
-      console.log("Cleaning up location subscription");
-      changeIsTrackingActive(false);
-    };
-  }, [location.running]);
-
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-      if (locationSubscription.current) {
-        locationSubscription.current.remove();
-      }
-    };
-  }, []);
+    return () => changeIsTrackingActive(false);
+  }, [changeIsTrackingActive, location.running]);
 
   return (
     <View style={styles.floatingCard}>
+      {assignment && (
+        <View style={styles.assignmentCard}>
+          <Text style={styles.assignmentTitle}>
+            {assignment.numero_ruta
+              ? `Ruta ${assignment.numero_ruta}`
+              : `Asignación ${assignment.id_asignacion ?? "-"}`}
+          </Text>
+
+          <Text style={styles.assignmentText}>
+            {assignment.lugar_inicial ?? "Origen no disponible"} →{" "}
+            {assignment.lugar_final ?? "Destino no disponible"}
+          </Text>
+
+          <View style={styles.metaGrid}>
+            {assignment.id_ruta !== undefined && (
+              <Text style={styles.metaText}>ID ruta: {assignment.id_ruta}</Text>
+            )}
+            {assignment.tiempo_estimado !== null &&
+              assignment.tiempo_estimado !== undefined && (
+                <Text style={styles.metaText}>
+                  Tiempo estimado: {assignment.tiempo_estimado} min
+                </Text>
+              )}
+            {assignment.fecha_hora_inicio && (
+              <Text style={styles.metaText}>
+                Inicio:{" "}
+                {new Date(assignment.fecha_hora_inicio).toLocaleString()}
+              </Text>
+            )}
+            {assignment.fecha_hora_comienzo && (
+              <Text style={styles.metaText}>
+                Comienzo:{" "}
+                {new Date(assignment.fecha_hora_comienzo).toLocaleString()}
+              </Text>
+            )}
+            {assignment.estado_tracking && (
+              <Text style={styles.metaText}>
+                Tracking: {assignment.estado_tracking}
+              </Text>
+            )}
+            {assignment.fecha_hora_fin && (
+              <Text style={styles.metaText}>
+                Fin: {new Date(assignment.fecha_hora_fin).toLocaleString()}
+              </Text>
+            )}
+          </View>
+        </View>
+      )}
+
       <View style={styles.divider} />
 
       {/* Estado del GPS */}
-      {location.error ? (
-        <Text style={styles.errorText}>{location.error}</Text>
-      ) : location ? (
-        <Text style={styles.text}>
-          Lat: {location.location?.latitude.toFixed(4)}, Lng:{" "}
-          {location.location?.longitude.toFixed(4)}
-        </Text>
-      ) : (
-        <Text style={styles.text}>Estado: Inactivo</Text>
-      )}
+      {location.error && <Text style={styles.errorText}>{location.error}</Text>}
 
       {/* Botón de control de rastreo */}
       <TouchableOpacity
         style={[
           styles.button,
           location.running ? styles.buttonStop : styles.buttonStart,
+          (!canStart ||
+            location.status === "connecting" ||
+            location.status === "waiting_start") &&
+            !location.running &&
+            styles.buttonDisabled,
         ]}
+        disabled={
+          (!canStart ||
+            location.status === "connecting" ||
+            location.status === "waiting_start") &&
+          !location.running
+        }
         onPress={
           location.running ? location.stopTracking : location.startTracking
         }
       >
         <Text style={styles.buttonText}>
-          {location.running ? "Detener Rastreo" : "Iniciar Rastreo"}
+          {location.running
+            ? location.status === "stopping"
+              ? "Finalizando..."
+              : "Detener Rastreo"
+            : location.status === "connecting" ||
+                location.status === "waiting_start"
+              ? "Validando inicio..."
+              : assignment?.estado_tracking === "in_progress"
+                ? "Reanudar Rastreo"
+                : "Iniciar Rastreo"}
         </Text>
       </TouchableOpacity>
     </View>
@@ -87,6 +150,33 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+  },
+  assignmentCard: {
+    width: "100%",
+    backgroundColor: "#f8fafc",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#dfe7f1",
+  },
+  assignmentTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#17324D",
+    marginBottom: 4,
+  },
+  assignmentText: {
+    fontSize: 12,
+    color: "#475569",
+    marginBottom: 8,
+  },
+  metaGrid: {
+    gap: 4,
+  },
+  metaText: {
+    fontSize: 11,
+    color: "#334155",
   },
   routesContainer: {
     width: "100%",
@@ -177,6 +267,9 @@ const styles = StyleSheet.create({
   },
   buttonStop: {
     backgroundColor: "#e42e41",
+  },
+  buttonDisabled: {
+    backgroundColor: "#9ca3af",
   },
   buttonText: {
     color: "#ffffff",
