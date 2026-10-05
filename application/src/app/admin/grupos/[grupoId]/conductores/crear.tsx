@@ -21,7 +21,12 @@ export default function CrearConductorScreen() {
   const [password, setPassword] = useState("");
   const [guardando, setGuardando] = useState(false);
   const valido = Boolean(
-    nombre.trim() && codigo.trim() && codigo.length <= 10 && password.length >= 6,
+    nombre.trim() &&
+      nombre.trim().length <= 120 &&
+      codigo.trim() &&
+      codigo.trim().length <= 10 &&
+      telefono.trim().length <= 20 &&
+      password.length >= 6,
   );
 
   const crear = async () => {
@@ -57,7 +62,12 @@ export default function CrearConductorScreen() {
         <Text style={styles.title}>Nuevo conductor</Text>
         <Text style={styles.subtitle}>Grupo {grupoId}</Text>
         <Text style={styles.label}>Nombre completo</Text>
-        <TextInput style={styles.input} value={nombre} onChangeText={setNombre} />
+        <TextInput
+          style={styles.input}
+          value={nombre}
+          onChangeText={setNombre}
+          maxLength={120}
+        />
         <Text style={styles.label}>Código de acceso</Text>
         <TextInput
           style={styles.input}
@@ -72,6 +82,7 @@ export default function CrearConductorScreen() {
           value={telefono}
           onChangeText={setTelefono}
           keyboardType="phone-pad"
+          maxLength={20}
         />
         <Text style={styles.label}>Contraseña inicial</Text>
         <TextInput

@@ -42,7 +42,13 @@ export default function EditarConductorScreen() {
   }, [grupoId, conductorId]);
 
   const guardar = async () => {
-    if (!grupoId || !conductorId || !nombre.trim()) return;
+    if (
+      !grupoId ||
+      !conductorId ||
+      !nombre.trim() ||
+      nombre.trim().length > 120 ||
+      telefono.trim().length > 20
+    ) return;
     setGuardando(true);
     try {
       await gruposService.editarConductor(grupoId, conductorId, {
@@ -83,19 +89,25 @@ export default function EditarConductorScreen() {
         <Text style={styles.label}>Código de acceso</Text>
         <TextInput style={[styles.input, styles.readonly]} value={conductor.code} editable={false} />
         <Text style={styles.label}>Nombre</Text>
-        <TextInput style={styles.input} value={nombre} onChangeText={setNombre} />
+        <TextInput
+          style={styles.input}
+          value={nombre}
+          onChangeText={setNombre}
+          maxLength={120}
+        />
         <Text style={styles.label}>Teléfono</Text>
         <TextInput
           style={styles.input}
           value={telefono}
           onChangeText={setTelefono}
           keyboardType="phone-pad"
+          maxLength={20}
         />
         <Text style={styles.note}>El código y la contraseña no se modifican desde esta pantalla.</Text>
         <TouchableOpacity
-          style={[styles.button, (!nombre.trim() || guardando) && styles.disabled]}
+          style={[styles.button, (!nombre.trim() || nombre.trim().length > 120 || telefono.trim().length > 20 || guardando) && styles.disabled]}
           onPress={guardar}
-          disabled={!nombre.trim() || guardando}
+          disabled={!nombre.trim() || nombre.trim().length > 120 || telefono.trim().length > 20 || guardando}
         >
           {guardando ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Guardar cambios</Text>}
         </TouchableOpacity>

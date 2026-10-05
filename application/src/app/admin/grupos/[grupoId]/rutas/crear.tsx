@@ -100,7 +100,7 @@ function readControlPoints(drafts: ControlPointDraft[]): PuntoControlPayload[] {
       radio <= 0
     ) {
       throw new Error(
-        `Completa correctamente las coordenadas y cantidades del punto ${index + 1}.`,
+        `Completa correctamente las coordenadas y el radio del punto ${index + 1}.`,
       );
     }
     return {
@@ -262,7 +262,14 @@ export default function CrearRutaScreen() {
     try {
       if (!coordinates)
         throw new Error("Selecciona primero el archivo GeoJSON.");
-      if (!numeroRuta.trim() || !origen.trim() || !destino.trim()) {
+      if (
+        !numeroRuta.trim() ||
+        numeroRuta.trim().length > 10 ||
+        !origen.trim() ||
+        origen.trim().length > 100 ||
+        !destino.trim() ||
+        destino.trim().length > 100
+      ) {
         throw new Error("Completa número de ruta, origen y destino.");
       }
       if (controlPoints.length < 2) {
@@ -391,6 +398,7 @@ export default function CrearRutaScreen() {
                 setOrigen(value);
                 setPreviewVisible(false);
               }}
+              maxLength={100}
             />
           </View>
           <View style={styles.column}>
@@ -402,6 +410,7 @@ export default function CrearRutaScreen() {
                 setDestino(value);
                 setPreviewVisible(false);
               }}
+              maxLength={100}
             />
           </View>
         </View>
@@ -438,10 +447,7 @@ export default function CrearRutaScreen() {
           <View>
             <Text style={styles.sectionTitle}>Puntos de control</Text>
             <Text style={styles.helper}>
-              Longitud, latitud, radio y cantidad relativa.
-            </Text>
-            <Text style={styles.helper}>
-              El orden de estas tarjetas define la secuencia de la ruta.
+              Longitud, latitud y radio. El orden define la secuencia de la ruta.
             </Text>
           </View>
           <TouchableOpacity
@@ -550,13 +556,6 @@ export default function CrearRutaScreen() {
                   keyboardType="decimal-pad"
                 />
               </View>
-              <Text style={styles.smallLabel}>Radio en metros</Text>
-              <TextInput
-                style={styles.input}
-                value={point.radio}
-                onChangeText={(value) => actualizarPunto(index, "radio", value)}
-                keyboardType="decimal-pad"
-              />
             </View>
           </View>
         ))}

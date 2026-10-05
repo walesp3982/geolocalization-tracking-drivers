@@ -73,12 +73,17 @@ export default function EditarGrupoScreen() {
   );
   const representanteCompleto = Boolean(
     nombreRepresentante.trim() &&
+      nombreRepresentante.trim().length <= 120 &&
     telefonoRepresentante.trim() &&
+      telefonoRepresentante.trim().length <= 20 &&
     codigoRepresentante.trim() &&
+      codigoRepresentante.trim().length <= 10 &&
     passwordRepresentante.length >= 6,
   );
   const esValido = Boolean(
-    nombreGrupo.trim() && (!representanteIniciado || representanteCompleto),
+    nombreGrupo.trim() &&
+      nombreGrupo.trim().length <= 20 &&
+      (!representanteIniciado || representanteCompleto),
   );
 
   const handleGuardar = async () => {
@@ -224,6 +229,7 @@ export default function EditarGrupoScreen() {
         style={styles.input}
         value={nombreGrupo}
         onChangeText={setNombreGrupo}
+        maxLength={20}
       />
 
       <Text style={styles.label}>Líneas (separadas por coma)</Text>
@@ -280,6 +286,7 @@ export default function EditarGrupoScreen() {
             style={styles.input}
             value={nombreRepresentante}
             onChangeText={setNombreRepresentante}
+            maxLength={120}
           />
 
           <Text style={styles.label}>Teléfono</Text>
@@ -288,6 +295,7 @@ export default function EditarGrupoScreen() {
             value={telefonoRepresentante}
             onChangeText={setTelefonoRepresentante}
             keyboardType="phone-pad"
+            maxLength={20}
           />
 
           <Text style={styles.label}>Código de acceso</Text>

@@ -28,12 +28,17 @@ export default function CrearGrupoScreen() {
   );
   const representanteCompleto = Boolean(
     nombreRepresentante.trim() &&
+    nombreRepresentante.trim().length <= 120 &&
     telefonoRepresentante.trim() &&
+    telefonoRepresentante.trim().length <= 20 &&
     codigoRepresentante.trim() &&
+    codigoRepresentante.trim().length <= 10 &&
     passwordRepresentante.length >= 6,
   );
   const esValido = Boolean(
-    nombreGrupo.trim() && (!representanteIniciado || representanteCompleto),
+    nombreGrupo.trim() &&
+      nombreGrupo.trim().length <= 20 &&
+      (!representanteIniciado || representanteCompleto),
   );
 
   const handleCrear = async () => {
@@ -87,6 +92,7 @@ export default function CrearGrupoScreen() {
         value={nombreGrupo}
         onChangeText={setNombreGrupo}
         placeholder="Ej: Flota Centro"
+        maxLength={20}
       />
 
       <Text style={styles.sectionTitle}>Representante (opcional)</Text>
@@ -97,6 +103,7 @@ export default function CrearGrupoScreen() {
         value={nombreRepresentante}
         onChangeText={setNombreRepresentante}
         placeholder="Nombre completo"
+        maxLength={120}
       />
 
       <Text style={styles.label}>Teléfono</Text>
@@ -106,6 +113,7 @@ export default function CrearGrupoScreen() {
         onChangeText={setTelefonoRepresentante}
         placeholder="Ej: 8888-8888"
         keyboardType="phone-pad"
+        maxLength={20}
       />
 
       <Text style={styles.label}>Código de acceso</Text>
