@@ -1,8 +1,9 @@
 import datetime
+import json
 import random
 import string
 import uuid
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query, status
 from geojson_pydantic import Feature, LineString
@@ -16,6 +17,10 @@ from src.depends import DatabaseSession
 from src.jwt.security import hash_password
 
 router = APIRouter(prefix="/jefe-grupo", tags=["Jefe de Grupo"])
+
+
+def _geojson_to_mapping(geojson: str | dict[str, Any]) -> dict[str, Any]:
+    return json.loads(geojson) if isinstance(geojson, str) else geojson
 
 
 class ConductorResponse(BaseModel):
@@ -162,6 +167,24 @@ class AsignacionRutaRequest(BaseModel):
         return value
 
 
+class RutaAsignacionDetalle(BaseModel):
+    id_asignacion: int
+    id_ruta: int
+    id_conductor: int
+    fecha_hora_inicio: datetime.datetime
+    fecha_hora_comienzo: datetime.datetime | None = None
+    fecha_hora_fin: datetime.datetime | None = None
+    estado_tracking: str | None = None
+    conductor: ConductorResponse
+
+
+class RutaAsignacionesResponse(BaseModel):
+    ruta: "RutaByAsignacion"
+    asignaciones: list[RutaAsignacionDetalle]
+    total_asignaciones: int
+    conductores_asignados: int
+
+
 class MetadataLine(BaseModel):
     id_ruta: int
     numero_ruta: str
@@ -251,11 +274,46 @@ async def asignar_ruta_a_chofer(
     ruta: Annotated[Ruta, Depends(has_premission_access_to_route)],
 ):
 
+    fecha_inicio = solicitud_asignacion.fecha_inicio
+    if fecha_inicio.tzinfo is None:
+        fecha_inicio = fecha_inicio.replace(tzinfo=datetime.UTC)
+
+    ahora = datetime.datetime.now(datetime.UTC)
+    if fecha_inicio <= ahora:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="La fecha debe ser posterior al momento actual.",
+        )
+
+    duracion_minutos = ruta.tiempo_estimado or 60
+    fecha_fin = fecha_inicio + datetime.timedelta(minutes=duracion_minutos)
+
+    stmt = select(AsignacionRuta).where(
+        AsignacionRuta.id_conductor == conductor.id_conductor
+    )
+    result = await session.scalars(stmt)
+    for asignacion_existente in result.all():
+        existente_inicio = asignacion_existente.fecha_hora_inicio
+        existente_fin = (
+            asignacion_existente.fecha_hora_fin
+            if asignacion_existente.fecha_hora_fin is not None
+            else existente_inicio + datetime.timedelta(minutes=duracion_minutos)
+        )
+        if existente_inicio < fecha_fin and fecha_inicio < existente_fin:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "El conductor ya tiene otra asignación que se solapa con "
+                    "la fecha y hora seleccionadas."
+                ),
+            )
+
     asignacion = AsignacionRuta(
         id_ruta=ruta.id_ruta,
         id_conductor=conductor.id_conductor,
-        datetime_inicio=solicitud_asignacion.fecha_inicio,
+        datetime_inicio=fecha_inicio,
     )
+    asignacion.fecha_hora_fin = fecha_fin
 
     session.add(asignacion)
     await session.commit()
@@ -288,11 +346,11 @@ async def asignar_ruta_a_chofer(
             detail="Failed generating geojson",
         )
 
-    geojson_str = result
+    geojson_dict = _geojson_to_mapping(result)
 
     line_feature = Feature[LineString, MetadataLine](
         type="Feature",
-        geometry=LineString(**geojson_str),
+        geometry=LineString(**geojson_dict),
         properties=MetadataLine(
             id_ruta=ruta.id_ruta,
             numero_ruta=ruta.numero_ruta,
@@ -304,6 +362,47 @@ async def asignar_ruta_a_chofer(
         fecha_hora_inicio=asignacion.fecha_hora_inicio,
         fecha_hora_final=asignacion.fecha_hora_fin,
         ruta=RutaResponse.from_model(ruta, line=line_feature),
+    )
+
+
+@router.get("/rutas/{ruta_id}/asignaciones")
+async def get_asignations_by_route(
+    ruta: Annotated[Ruta, Depends(has_premission_access_to_route)],
+    session: DatabaseSession,
+    jefe: GetJefeGrupo,
+) -> RutaAsignacionesResponse:
+    stmt = (
+        select(AsignacionRuta)
+        .where(AsignacionRuta.id_ruta == ruta.id_ruta)
+        .options(
+            selectinload(AsignacionRuta.conductor),
+            selectinload(AsignacionRuta.ruta),
+        )
+        .order_by(asc(AsignacionRuta.fecha_hora_inicio))
+    )
+
+    result = await session.scalars(stmt)
+    asignaciones = result.all()
+    payload: list[RutaAsignacionDetalle] = []
+    for asignacion in asignaciones:
+        payload.append(
+            RutaAsignacionDetalle(
+                id_asignacion=asignacion.id_asignacion,
+                id_ruta=asignacion.id_ruta,
+                id_conductor=asignacion.id_conductor,
+                fecha_hora_inicio=asignacion.fecha_hora_inicio,
+                fecha_hora_comienzo=asignacion.fecha_hora_comienzo,
+                fecha_hora_fin=asignacion.fecha_hora_fin,
+                estado_tracking=asignacion.estado_tracking,
+                conductor=ConductorResponse.from_model(asignacion.conductor),
+            )
+        )
+
+    return RutaAsignacionesResponse(
+        ruta=RutaByAsignacion.from_model(ruta),
+        asignaciones=payload,
+        total_asignaciones=len(payload),
+        conductores_asignados=len({item.id_conductor for item in payload}),
     )
 
 
@@ -361,11 +460,11 @@ async def show_all_asignations(
     )
 
     if not query.since_date:
-        stmt.where(
+        stmt = stmt.where(
             AsignacionRuta.fecha_hora_comienzo >= datetime.datetime.now(tz=datetime.UTC)
         )
     else:
-        stmt.where(AsignacionRuta.fecha_hora_comienzo >= query.since_date)
+        stmt = stmt.where(AsignacionRuta.fecha_hora_comienzo >= query.since_date)
 
     stmt_count = stmt.with_only_columns(func.count(), maintain_column_froms=True)
     count = await session.scalar(stmt_count) or 0
@@ -482,11 +581,11 @@ async def get_rutas(session: DatabaseSession, jefe: GetJefeGrupo) -> list[RutaRe
                 detail="Failed generating geojson",
             )
 
-        geojson_str = result
+        geojson_dict = _geojson_to_mapping(result)
 
         line_feature = Feature[LineString, MetadataLine](
             type="Feature",
-            geometry=LineString(**geojson_str),
+            geometry=LineString(**geojson_dict),
             properties=MetadataLine(
                 id_ruta=r.id_ruta,
                 numero_ruta=r.numero_ruta,

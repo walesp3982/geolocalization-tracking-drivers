@@ -1,5 +1,12 @@
 import { NativeTabs } from "expo-router/unstable-native-tabs";
-import { Alert, Pressable, StyleSheet, Text, useColorScheme, View } from "react-native";
+import {
+    Alert,
+    Pressable,
+    StyleSheet,
+    Text,
+    useColorScheme,
+    View,
+} from "react-native";
 
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/context/auth-context";
@@ -7,7 +14,8 @@ import { useAuth } from "@/context/auth-context";
 export default function AppTabs() {
   const scheme = useColorScheme();
   const colors = Colors[scheme === "unspecified" ? "light" : scheme];
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const isGroupLeader = user?.is_jefe_grupo === true;
 
   const handleLogout = () => {
     Alert.alert("Cerrar sesión", "¿Deseas cerrar la sesión actual?", [
@@ -44,6 +52,16 @@ export default function AppTabs() {
             renderingMode="template"
           />
         </NativeTabs.Trigger>
+
+        {isGroupLeader && (
+          <NativeTabs.Trigger name="jefe-grupo">
+            <NativeTabs.Trigger.Label>Jefe de grupo</NativeTabs.Trigger.Label>
+            <NativeTabs.Trigger.Icon
+              src={require("@/assets/images/tabIcons/explore.png")}
+              renderingMode="template"
+            />
+          </NativeTabs.Trigger>
+        )}
       </NativeTabs>
 
       <Pressable style={styles.logoutButton} onPress={handleLogout}>

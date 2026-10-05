@@ -197,7 +197,7 @@ class AsignacionRuta(Base):
     ) -> None:
         self.id_conductor = id_conductor
         self.id_ruta = id_ruta
-        self.fecha_hora_inicio = self.fecha_hora_inicio
+        self.fecha_hora_inicio = datetime_inicio
 
     @property
     def duracion(self) -> timedelta | None:
