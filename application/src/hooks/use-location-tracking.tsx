@@ -14,7 +14,7 @@ type UseLocationTrackingOptions = {
 };
 
 export function useLocationTracking({
-  timeInterval = 5000,
+  timeInterval = 500,
   distanceInterval = 0,
 }: UseLocationTrackingOptions = {}): {
   location: DeviceLocation | null;

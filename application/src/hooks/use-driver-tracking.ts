@@ -1,9 +1,9 @@
 import { apiRequest } from "@/services/api";
 import {
-    acknowledgeTrackingSample,
-    enqueueTrackingSample,
-    getPendingTrackingSamples,
-    type TrackingSample,
+  acknowledgeTrackingSample,
+  enqueueTrackingSample,
+  getPendingTrackingSamples,
+  type TrackingSample,
 } from "@/services/tracking-queue";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocationTracking } from "./use-location-tracking";
@@ -11,7 +11,7 @@ import { useWebSocket } from "./use-websocket";
 
 const WS_APP = process.env.EXPO_PUBLIC_WS_URL ?? "ws://10.0.2.2:8000";
 const WS_TRACKING = `${WS_APP.replace(/\/$/, "")}/tracking`;
-const LOCATION_INTERVAL_MS = 5000;
+const LOCATION_INTERVAL_MS = 500;
 
 type TrackingEvent = {
   type?: string;
@@ -60,7 +60,7 @@ export default function useDriverTracking(
   stopTracking: () => void;
   error: string | null;
 } {
-  const data = useLocationTracking({ timeInterval: 1000 });
+  const data = useLocationTracking({ timeInterval: 500 });
   const ws = useWebSocket(WS_TRACKING);
   const {
     getCurrentLocation,
