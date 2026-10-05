@@ -216,7 +216,12 @@ class Recorrido(Base):
         Geometry(geometry_type="POINT", srid=4326, spatial_index=True), nullable=False
     )
     # Diagrama dice TIME; recomiendo DateTime para no perder la fecha del punto.
-    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    timestamp_frontend: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    timestamp_backend: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
 
     asignacion: Mapped[AsignacionRuta] = relationship(back_populates="recorridos")
 
