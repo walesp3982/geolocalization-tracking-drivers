@@ -1,21 +1,23 @@
+import { useAuth } from "@/context/auth-context";
+import { gruposService } from "@/services/gruposService";
+import { Grupo } from "@/types/grupo";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StyleSheet,
-  useWindowDimensions,
   ActivityIndicator,
   Alert,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect, useRouter } from "expo-router";
-import { Grupo } from "@/types/grupo";
-import { gruposService } from "@/services/gruposService";
 
 export default function PanelAdminScreen() {
   const router = useRouter();
+  const { logout } = useAuth();
   const { width } = useWindowDimensions();
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,7 +32,9 @@ export default function PanelAdminScreen() {
       const data = await gruposService.listar();
       setGrupos(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo conectar con el backend");
+      setError(
+        e instanceof Error ? e.message : "No se pudo conectar con el backend",
+      );
     } finally {
       setLoading(false);
     }
@@ -40,7 +44,7 @@ export default function PanelAdminScreen() {
     useCallback(() => {
       setLoading(true);
       cargarGrupos();
-    }, [cargarGrupos])
+    }, [cargarGrupos]),
   );
 
   const handleEliminar = (grupo: Grupo) => {
@@ -58,14 +62,28 @@ export default function PanelAdminScreen() {
               await gruposService.eliminar(grupo.id);
               setGrupos((prev) => prev.filter((g) => g.id !== grupo.id));
             } catch (e) {
-              Alert.alert("Error", e instanceof Error ? e.message : "No se pudo eliminar");
+              Alert.alert(
+                "Error",
+                e instanceof Error ? e.message : "No se pudo eliminar",
+              );
             } finally {
               setEliminandoId(null);
             }
           },
         },
-      ]
+      ],
     );
+  };
+
+  const handleCerrarSesion = () => {
+    Alert.alert("Cerrar sesión", "¿Deseas cerrar la sesión actual?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Cerrar sesión",
+        style: "destructive",
+        onPress: () => void logout(),
+      },
+    ]);
   };
 
   if (loading) {
@@ -80,18 +98,27 @@ export default function PanelAdminScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Panel de administración</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => router.push("./crear")}
-        >
-          <Text style={styles.addButtonText}>+ Agregar grupo</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => router.push("/admin/grupos/crear")}
+          >
+            <Text style={styles.addButtonText}>+ Agregar grupo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={handleCerrarSesion}
+          >
+            <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {error && (
         <Text style={styles.errorText}>
-          {error}. Revisa que el backend esté corriendo y que EXPO_PUBLIC_API_URL
-          apunte a la IP correcta (10.0.2.2 en el emulador Android).
+          {error}. Revisa que el backend esté corriendo y que
+          EXPO_PUBLIC_API_URL apunte a la IP correcta (10.0.2.2 en el emulador
+          Android).
         </Text>
       )}
 
@@ -107,7 +134,9 @@ export default function PanelAdminScreen() {
         data={grupos}
         keyExtractor={(item) => item.id}
         ListEmptyComponent={
-          !error ? <Text style={styles.emptyText}>Todavía no hay grupos.</Text> : null
+          !error ? (
+            <Text style={styles.emptyText}>Todavía no hay grupos.</Text>
+          ) : null
         }
         renderItem={({ item, index }) => (
           <View
@@ -141,19 +170,23 @@ export default function PanelAdminScreen() {
             <View style={[styles.colAcciones, styles.acciones]}>
               <TouchableOpacity
                 style={styles.iconButton}
-                onPress={() => router.push({
-                  pathname: "[grupoId]" as any,
-                  params: { grupoId: item.id }
-                })}
+                onPress={() =>
+                  router.push({
+                    pathname: "/admin/grupos/[grupoId]",
+                    params: { grupoId: item.id },
+                  })
+                }
               >
                 <Text style={styles.iconText}>👁️</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.iconButton}
-                onPress={() => router.push({
-                  pathname: "[grupoId]/editar" as any,
-                  params: { grupoId: item.id }
-                })}
+                onPress={() =>
+                  router.push({
+                    pathname: "/admin/grupos/[grupoId]/editar",
+                    params: { grupoId: item.id },
+                  })
+                }
               >
                 <Text style={styles.iconText}>✏️</Text>
               </TouchableOpacity>
@@ -187,6 +220,7 @@ const styles = StyleSheet.create({
     rowGap: 8,
   },
   title: { fontSize: 20, fontWeight: "700", flexShrink: 1, marginRight: 8 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   addButton: {
     backgroundColor: "#2563eb",
     paddingHorizontal: 12,
@@ -194,6 +228,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   addButtonText: { color: "#fff", fontWeight: "600", fontSize: 13 },
+  logoutButton: {
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  logoutButtonText: { color: "#374151", fontWeight: "600", fontSize: 13 },
   row: {
     flexDirection: "row",
     alignItems: "center",
