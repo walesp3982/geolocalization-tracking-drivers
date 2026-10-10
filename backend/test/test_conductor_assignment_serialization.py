@@ -9,7 +9,7 @@ import pytest
 from geojson_pydantic import LineString
 
 from src.api.router.conductor import serialize_assignment_response
-from src.api.router.jefe_grupo import _geojson_to_mapping
+from src.api.router.jefe_grupo import _geojson_to_mapping, _same_route_same_day
 from src.database.models import (
     AsignacionRuta,
     PuntosControl,
@@ -90,6 +90,21 @@ def test_asignacion_ruta_sets_feha_hora_inicio_from_constructor():
     assert assignment.id_conductor == 8
     assert assignment.id_ruta == 42
     assert assignment.fecha_hora_inicio == start
+
+
+def test_same_route_can_be_assigned_multiple_times_on_the_same_day():
+    start = datetime(2026, 10, 5, 7, 5, tzinfo=UTC)
+    assignment = AsignacionRuta(
+        id_conductor=8,
+        id_ruta=42,
+        datetime_inicio=start,
+    )
+
+    assert _same_route_same_day(assignment, 42, start.replace(hour=8))
+    assert not _same_route_same_day(assignment, 43, start.replace(hour=8))
+    assert not _same_route_same_day(
+        assignment, 42, start.replace(day=6, hour=8)
+    )
 
 
 @pytest.mark.parametrize(

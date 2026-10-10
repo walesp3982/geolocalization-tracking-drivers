@@ -25,6 +25,7 @@ export type RutaAsignacion = {
   fecha_hora_inicio: string;
   fecha_hora_comienzo: string | null;
   fecha_hora_fin: string | null;
+  fecha_hora_fin_estimada: string;
   estado_tracking: string | null;
   conductor: JefeConductor;
 };

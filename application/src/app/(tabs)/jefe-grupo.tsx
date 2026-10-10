@@ -80,7 +80,6 @@ export default function JefeGrupoScreen() {
   const [section, setSection] = useState<PanelSection>("agenda");
   const [conductores, setConductores] = useState<JefeConductor[]>([]);
   const [rutas, setRutas] = useState<RutaConAsignaciones[]>([]);
-  const [loadedAt, setLoadedAt] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -114,7 +113,6 @@ export default function JefeGrupoScreen() {
       );
 
       setConductores(driversResponse.conductores);
-      setLoadedAt(currentTimestamp());
       setRutas(
         routesResponse.map((ruta, index) => ({
           ruta,
@@ -135,19 +133,6 @@ export default function JefeGrupoScreen() {
   }, [loadDashboard]);
 
   const activeDrivers = conductores.filter((conductor) => conductor.activo);
-  const upcomingAssignments = rutas
-    .flatMap(({ ruta, asignaciones }) =>
-      asignaciones.map((asignacion) => ({ ruta, asignacion })),
-    )
-    .filter(
-      ({ asignacion }) =>
-        new Date(asignacion.fecha_hora_inicio).getTime() >= loadedAt,
-    )
-    .sort(
-      (first, second) =>
-        new Date(first.asignacion.fecha_hora_inicio).getTime() -
-        new Date(second.asignacion.fecha_hora_inicio).getTime(),
-    );
 
   const submitNewDriver = async () => {
     if (!newName.trim() || !newPassword.trim()) {
@@ -227,6 +212,12 @@ export default function JefeGrupoScreen() {
       asignaciones
         .filter((assignment) => assignment.id_conductor === driverId)
         .filter((assignment) => {
+          const sameRouteSameDay =
+            ruta.id_ruta === route.id_ruta &&
+            new Date(assignment.fecha_hora_inicio).toISOString().slice(0, 10) ===
+              new Date(candidateStart).toISOString().slice(0, 10);
+          if (sameRouteSameDay) return false;
+
           const assignmentStart = new Date(
             assignment.fecha_hora_inicio,
           ).getTime();
@@ -314,12 +305,6 @@ export default function JefeGrupoScreen() {
         <View style={[styles.metric, surface]}>
           <Text style={[styles.metricValue, panelText]}>{rutas.length}</Text>
           <Text style={[styles.metricLabel, mutedText]}>Rutas del grupo</Text>
-        </View>
-        <View style={[styles.metric, surface]}>
-          <Text style={[styles.metricValue, panelText]}>
-            {upcomingAssignments.length}
-          </Text>
-          <Text style={[styles.metricLabel, mutedText]}>Turnos próximos</Text>
         </View>
       </View>
 
@@ -464,16 +449,16 @@ export default function JefeGrupoScreen() {
                             </Text>
                             <Text style={[styles.assignmentTime, mutedText]}>
                               {formatDateTime(assignment.fecha_hora_inicio)}
-                              {assignment.fecha_hora_fin
-                                ? ` – ${new Intl.DateTimeFormat("es-CL", { hour: "2-digit", minute: "2-digit" }).format(new Date(assignment.fecha_hora_fin))}`
-                                : ""}
+                              {` – ${new Intl.DateTimeFormat("es-CL", { hour: "2-digit", minute: "2-digit" }).format(new Date(assignment.fecha_hora_fin ?? assignment.fecha_hora_fin_estimada))}`}
+                              {!assignment.fecha_hora_fin ? " (estimado)" : ""}
                             </Text>
                           </View>
                           <Text style={styles.assignmentStatus}>
-                            {assignment.fecha_hora_comienzo &&
-                            !assignment.fecha_hora_fin
-                              ? "En curso"
-                              : "Programado"}
+                            {assignment.fecha_hora_fin
+                              ? "Finalizado"
+                              : assignment.fecha_hora_comienzo
+                                ? "En curso"
+                                : "Programado"}
                           </Text>
                         </View>
                       ))}
@@ -638,41 +623,6 @@ export default function JefeGrupoScreen() {
             })
           )}
 
-          <View style={styles.sectionHeading}>
-            <View>
-              <Text style={[styles.sectionTitle, panelText]}>
-                Próximos turnos
-              </Text>
-              <Text style={[styles.sectionCaption, mutedText]}>
-                Agenda consolidada del grupo
-              </Text>
-            </View>
-          </View>
-          {upcomingAssignments.length === 0 ? (
-            <Text style={[styles.noAssignments, mutedText]}>
-              No hay turnos futuros asignados.
-            </Text>
-          ) : (
-            upcomingAssignments.slice(0, 8).map(({ ruta, asignacion }) => (
-              <View
-                key={`upcoming-${asignacion.id_asignacion}`}
-                style={[styles.upcomingRow, surface]}
-              >
-                <View style={styles.upcomingDate}>
-                  <Text style={styles.upcomingRoute}>{ruta.numero_ruta}</Text>
-                </View>
-                <View style={styles.assignmentDetails}>
-                  <Text style={[styles.assignmentName, panelText]}>
-                    {asignacion.conductor.name}
-                  </Text>
-                  <Text style={[styles.assignmentTime, mutedText]}>
-                    {formatDateTime(asignacion.fecha_hora_inicio)}
-                  </Text>
-                </View>
-                <Text style={[styles.upcomingArrow, { color: ACCENT }]}>›</Text>
-              </View>
-            ))
-          )}
         </View>
       ) : (
         <View style={styles.section}>

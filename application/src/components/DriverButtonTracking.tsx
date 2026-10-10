@@ -87,6 +87,15 @@ export default function DriverButtonTracking({
                 Fin: {new Date(assignment.fecha_hora_fin).toLocaleString()}
               </Text>
             )}
+            {!assignment.fecha_hora_fin &&
+              assignment.fecha_hora_inicio && (
+                <Text style={styles.metaText}>
+                  Fin estimado: {new Date(
+                    new Date(assignment.fecha_hora_inicio).getTime() +
+                      (assignment.tiempo_estimado ?? 60) * 60 * 1000,
+                  ).toLocaleString()}
+                </Text>
+              )}
           </View>
         </View>
       )}

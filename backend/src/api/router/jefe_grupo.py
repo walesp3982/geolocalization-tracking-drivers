@@ -174,6 +174,7 @@ class RutaAsignacionDetalle(BaseModel):
     fecha_hora_inicio: datetime.datetime
     fecha_hora_comienzo: datetime.datetime | None = None
     fecha_hora_fin: datetime.datetime | None = None
+    fecha_hora_fin_estimada: datetime.datetime
     estado_tracking: str | None = None
     conductor: ConductorResponse
 
@@ -264,6 +265,15 @@ class AsignacionRutaResponse(BaseModel):
     ruta: RutaResponse
     fecha_hora_inicio: datetime.datetime
     fecha_hora_final: datetime.datetime | None = None
+    fecha_hora_fin_estimada: datetime.datetime
+
+
+def _same_route_same_day(
+    asignacion: AsignacionRuta, ruta_id: int, fecha_inicio: datetime.datetime
+) -> bool:
+    fecha_existente = asignacion.fecha_hora_inicio.astimezone(datetime.UTC).date()
+    fecha_nueva = fecha_inicio.astimezone(datetime.UTC).date()
+    return asignacion.id_ruta == ruta_id and fecha_existente == fecha_nueva
 
 
 @router.post("/ruta/{ruta_id}/conductores/{conductor_id}/asignaciones")
@@ -293,6 +303,8 @@ async def asignar_ruta_a_chofer(
     )
     result = await session.scalars(stmt)
     for asignacion_existente in result.all():
+        if _same_route_same_day(asignacion_existente, ruta.id_ruta, fecha_inicio):
+            continue
         existente_inicio = asignacion_existente.fecha_hora_inicio
         existente_fin = (
             asignacion_existente.fecha_hora_fin
@@ -313,7 +325,6 @@ async def asignar_ruta_a_chofer(
         id_conductor=conductor.id_conductor,
         datetime_inicio=fecha_inicio,
     )
-    asignacion.fecha_hora_fin = fecha_fin
 
     session.add(asignacion)
     await session.commit()
@@ -361,6 +372,7 @@ async def asignar_ruta_a_chofer(
         conductor=ConductorResponse.from_model(asignacion.conductor),
         fecha_hora_inicio=asignacion.fecha_hora_inicio,
         fecha_hora_final=asignacion.fecha_hora_fin,
+        fecha_hora_fin_estimada=fecha_fin,
         ruta=RutaResponse.from_model(ruta, line=line_feature),
     )
 
@@ -393,6 +405,8 @@ async def get_asignations_by_route(
                 fecha_hora_inicio=asignacion.fecha_hora_inicio,
                 fecha_hora_comienzo=asignacion.fecha_hora_comienzo,
                 fecha_hora_fin=asignacion.fecha_hora_fin,
+                fecha_hora_fin_estimada=asignacion.fecha_hora_inicio
+                + datetime.timedelta(minutes=ruta.tiempo_estimado or 60),
                 estado_tracking=asignacion.estado_tracking,
                 conductor=ConductorResponse.from_model(asignacion.conductor),
             )
